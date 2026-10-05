@@ -137,7 +137,9 @@ public class MaterialInspector : RedObject, InspectorSource
             _widget.OnEditEnd -= EndEdit;
             _widget.Dispose();
         }
-        _widget = new MaterialInspectorWidget(materials);
+        var projectFound = _project.TryGetTarget(out var project);
+        Debug.Assert(projectFound);
+        _widget = new MaterialInspectorWidget(materials, project!.CoreDataPath);
         _widget.UpdateTechniques(TechniquePath);
         _widget.OnEditBegin += BeginEdit;
         _widget.OnEditEnd += EndEdit;

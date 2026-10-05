@@ -28,8 +28,9 @@ public class MaterialInspectorWidget : RedObject
     public event Action? OnEditBegin;
     public event Action? OnEditEnd;
 
-    public MaterialInspectorWidget(IReadOnlyList<Material> materials)
+    public MaterialInspectorWidget(IReadOnlyList<Material> materials, string coreDataPath)
     {
+        _coreDataPath = coreDataPath;
         _previewScene = new Scene();
         _previewWidget = new SceneRendererToTexture(_previewScene);
         _materials = new List<Material>(materials);
@@ -76,16 +77,20 @@ public class MaterialInspectorWidget : RedObject
         foreach (var relativeName in techniques)
         {
             var resourceName = (path.EndsWith('/') ? path : path + "/") + relativeName;
-            var description = new TechniqueDesc
+            var technique = cache.GetResourceOrNull<Technique>(resourceName);
+            if (technique is not null)
             {
-                ResourceName = resourceName,
-                DisplayName = relativeName[..^4],
-                Technique = cache.GetResourceOrNull<Technique>(resourceName),
-            };
-            description.Deprecated = IsTechniqueDeprecated(description.ResourceName);
-            if (description.Technique is not null)
-            {
-                _techniques[description.ResourceName] = description;
+                var description = new TechniqueDesc
+                {
+                    ResourceName = resourceName,
+                    DisplayName = relativeName[..^4],
+                    Technique = technique,
+                };
+                description.IsCoreData = description.Technique.GetAbsoluteFileName()
+                    .StartsWith(_coreDataPath, StringComparison.Ordinal);
+                description.Deprecated = description.IsCoreData && IsTechniqueDeprecated(resourceName);
+
+                _techniques[resourceName] = description;
                 _sortedTechniques.Add(description);
             }
         }
@@ -211,6 +216,7 @@ public class MaterialInspectorWidget : RedObject
         public string DisplayName = string.Empty;
         public string ResourceName = string.Empty;
         public Technique? Technique;
+        public bool IsCoreData;
         public bool Deprecated;
 
         public int CompareTo(TechniqueDesc? other)
@@ -218,8 +224,11 @@ public class MaterialInspectorWidget : RedObject
             if (other is null)
                 return 1;
             var deprecatedComparison = Deprecated.CompareTo(other.Deprecated);
-            return deprecatedComparison != 0
-                ? deprecatedComparison
+            if (deprecatedComparison != 0)
+                return deprecatedComparison;
+            var coreDataComparison = IsCoreData.CompareTo(other.IsCoreData);
+            return coreDataComparison != 0
+                ? coreDataComparison
                 : string.Compare(DisplayName, other.DisplayName, StringComparison.Ordinal);
         }
     }
@@ -701,8 +710,7 @@ public class MaterialInspectorWidget : RedObject
 
                 using var guardTextColor = new ColorScopeGuard(
                     ImGuiCol.ImGuiColText,
-                    new Vector4f(0.3f, 1.0f, 0.0f, 1.0f),
-                    !description.Deprecated);
+                    GetTechniqueColor(description.IsCoreData, description.Deprecated));
 
                 _textBuffer.Set(description.DisplayName);
                 if (ImGui.Selectable(
@@ -778,6 +786,16 @@ public class MaterialInspectorWidget : RedObject
         }
 
         return modified;
+    }
+
+    private static Color GetTechniqueColor(bool isCoreData, bool isDeprecated)
+    {
+        if (!isCoreData)
+            return new Color(0.5f, 1.0f, 0.0f, 1.0f);
+        else if (!isDeprecated)
+            return new Color(1.0f, 1.0f, 1.0f, 1.0f);
+        else
+            return new Color(0.5f, 0.5f, 0.5f, 1.0f);
     }
 
     private string GetTechniqueDisplayName(string resourceName)
@@ -1407,6 +1425,7 @@ public class MaterialInspectorWidget : RedObject
     }
 
     private readonly string _defaultTechniqueName = "Techniques/LitOpaque.xml";
+    private readonly string _coreDataPath;
 
     private Material? _previewSkyboxMaterial;
     private readonly Scene _previewScene;
