@@ -67,6 +67,7 @@ public partial class ImageCube : Resource
         }
 
         _faceImages.Clear();
+        _cachedSphericalHarmonics = null;
 
         var textureElement = _parametersXml.GetRoot();
         var imageElement = textureElement.GetChild("image");
@@ -186,23 +187,6 @@ public partial class ImageCube : Resource
             }
         }
 
-        // Load spherical harmonics, if present.
-        _cachedSphericalHarmonics = null;
-        var shElement = textureElement.GetChild("sh");
-        if (shElement.NotNull)
-        {
-            _cachedSphericalHarmonics = new SphericalHarmonicsDot9
-            {
-                Ar = shElement.GetVector4("ar"),
-                Ag = shElement.GetVector4("ag"),
-                Ab = shElement.GetVector4("ab"),
-                Br = shElement.GetVector4("br"),
-                Bg = shElement.GetVector4("bg"),
-                Bb = shElement.GetVector4("bb"),
-                C = shElement.GetVector4("c")
-            };
-        }
-
         // Precalculate mip levels if async loading
         if (AsyncLoadState == AsyncLoadState.Loading)
         {
@@ -227,6 +211,29 @@ public partial class ImageCube : Resource
             }
         }
 
+        // Load spherical harmonics, if present, or calculate automatically if that is requested.
+        var shElement = textureElement.GetChild("sh");
+        if (shElement.NotNull)
+        {
+            if (shElement.GetBool("calculate"))
+            {
+                _cachedSphericalHarmonics = new SphericalHarmonicsDot9(CalculateSphericalHarmonics());
+            }
+            else
+            {
+                _cachedSphericalHarmonics = new SphericalHarmonicsDot9
+                {
+                    Ar = shElement.GetVector4("ar"),
+                    Ag = shElement.GetVector4("ag"),
+                    Ab = shElement.GetVector4("ab"),
+                    Br = shElement.GetVector4("br"),
+                    Bg = shElement.GetVector4("bg"),
+                    Bb = shElement.GetVector4("bb"),
+                    C = shElement.GetVector4("c")
+                };
+            }
+        }
+
         MemoryUse = memoryUse;
         return true;
     }
@@ -236,6 +243,9 @@ public partial class ImageCube : Resource
 
     /// <summary>Return parameters XML.</summary>
     public XMLFile? GetParametersXML() => _parametersXml;
+
+    /// <summary>Return spherical harmonics, if the loaded file provided or requested them.</summary>
+    public SphericalHarmonicsDot9? GetSphericalHarmonics() => _cachedSphericalHarmonics;
 
     /// <summary>Return image data from a face's zero mip level.</summary>
     public Image? GetImage(CubeMapFace face) => _faceImages[(int)face];

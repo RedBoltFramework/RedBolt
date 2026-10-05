@@ -6,6 +6,7 @@ namespace RedBolt.Graphics;
 
 using RedBolt.Core;
 using RedBolt.IO;
+using RedBolt.Math;
 using RedBolt.RenderAPI;
 using TextureAddressMode = global::RedBolt.RenderAPI.TextureAddressMode;
 using RedBolt.Resource;
@@ -66,6 +67,8 @@ public partial class TextureCube : Texture
         _loadImageCube = cache.GetTempResource<ImageCube>(Name);
         if (_loadImageCube is null)
             return false;
+
+        _sphericalHarmonics = _loadImageCube.GetSphericalHarmonics();
 
         // Update dependencies
         foreach (var image in _loadImageCube.GetImages())
@@ -161,6 +164,11 @@ public partial class TextureCube : Texture
     }
 
     /// <summary>
+    /// Return spherical harmonics of the texture, if the source image provided them on load.
+    /// </summary>
+    public SphericalHarmonicsDot9? GetSphericalHarmonics() => _sphericalHarmonics;
+
+    /// <summary>
     /// Get image data from a face's zero mip level. Only RGB and RGBA textures are supported.
     /// </summary>
     public Image? GetImage(CubeMapFace face)
@@ -182,4 +190,9 @@ public partial class TextureCube : Texture
     /// Face image files acquired during BeginLoad.
     /// </summary>
     private ImageCube? _loadImageCube;
+
+    /// <summary>
+    /// Spherical harmonics, copied from the source image on load.
+    /// </summary>
+    private SphericalHarmonicsDot9? _sphericalHarmonics;
 }

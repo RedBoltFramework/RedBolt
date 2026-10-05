@@ -326,16 +326,21 @@ public partial class Zone : Drawable
             var sh = new SphericalHarmonicsDot9();
             if (_zoneTexture is not null)
             {
-                var zoneTextureName = _zoneTexture.Name;
-                var cache = GetSubsystem<ResourceCache>();
-                var zoneImage = !string.IsNullOrEmpty(zoneTextureName)
-                    ? cache?.GetTempResource<ImageCube>(zoneTextureName, false)
-                    : null;
-                if (zoneImage is not null)
-                    sh = zoneImage.GetOrCreateSphericalHarmonics();
-                else
-                    Log.GetLogger().LogWarning(
-                        "Cannot extract spherical harmonics from Zone texture without corresponding resource in cache");
+                if (_zoneTexture is TextureCube zoneTextureCube)
+                {
+                    var shCached = zoneTextureCube.GetSphericalHarmonics();
+                    if (shCached is not null)
+                    {
+                        sh = shCached.Value;
+                    }
+                    else
+                    {
+                        Log.GetLogger().LogWarning(
+                            "Texture '{TextureName}' does not contain cached spherical harmonics. "
+                            + "Add <sh ... /> tag to the texture XML file.",
+                            zoneTextureCube.Name);
+                    }
+                }
             }
 
             _cachedTextureLighting.Restore(sh);
