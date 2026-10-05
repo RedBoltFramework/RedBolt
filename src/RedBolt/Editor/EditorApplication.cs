@@ -45,6 +45,11 @@ public unsafe class EditorApplication : Application
     {
         _editorPluginManager = new EditorPluginManager();
 
+        _editorPluginManager.AddPlugin<EditorProject>("Assets.DilateTextureTransformer", static _ =>
+        {
+            if (!Context.Instance.IsReflected<DilateTextureTransformer>())
+                Context.Instance.RegisterAssembly(typeof(DilateTextureTransformer).Assembly);
+        });
         _editorPluginManager.AddPlugin<EditorProject>("Assets.ModelImporter", static _ =>
         {
             if (!Context.Instance.IsReflected<ModelImporter>())

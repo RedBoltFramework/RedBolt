@@ -667,7 +667,7 @@ Accepted deviations:
 - [ ] `SceneHierarchyWidget.h`
   - [ ] `SceneHierarchyWidget : Object`
 - [x] `MaterialInspectorWidget.h`
-  - [x] `MaterialInspectorWidget : Object` — preview scene and orbit controls, technique discovery/editing, multi-material undefined state, material properties and shader defines, default/custom textures, shader parameters, force-save signaling, and explicit owned-resource/`Variant` cleanup are ported and software-renderer interaction-tested; reusable UTF-8 and sorted scratch storage avoid render-path managed allocation, and the declaration-only native `UpdateCachedTechniques` remains an explicit `TODO: port`
+  - [x] `MaterialInspectorWidget : Object` — preview scene and orbit controls, technique discovery/editing (core-data-aware sort and colors), multi-material undefined state, material properties and shader defines, default/custom textures, shader parameters, force-save signaling, and explicit owned-resource/`Variant` cleanup are ported and software-renderer interaction-tested; reusable UTF-8 and sorted scratch storage avoid render-path managed allocation, and the declaration-only native `UpdateCachedTechniques` remains an explicit `TODO: port`
 - [x] `AnimationInspectorWidget.h`
   - [x] `AnimationInspectorWidget : ResourceInspectorWidget` — native length accessors and read-only save policy are ported and software-renderer tested
 - [x] `ModelInspectorWidget.h`
@@ -907,6 +907,9 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
   - [x] `ModelImporter : AssetTransformer` — callback forwarding replaces C++ secondary inheritance; Glow UV generation, GLTF/FBX/Blend inputs, parameter overlays, animation metadata, root-motion reset, nested transformers, and temporary cleanup are ported
   - [x] Editor default asset pipeline uses reflected `ModelImporter` type name
   - [ ] `Assets_ModelImporter` plugin entry point — **DEFERRED** with the editor plugin system; its `EditorApplication` call site must remain explicit `TODO: port` guidance
+
+- [x] `DilateTextureTransformer.h`
+  - [x] `DilateTextureTransformer : AssetTransformer` — PNG-only multi-source BFS dilation, whole-name case-insensitive regex matching (`System.Text.RegularExpressions` replaces `std::regex`), reflected `File Name Regex`/`Alpha Threshold` attributes, and `Assets.DilateTextureTransformer` registration beside `Assets.ModelImporter` are ported and unit tested
 
 ## Editor application and data
 
