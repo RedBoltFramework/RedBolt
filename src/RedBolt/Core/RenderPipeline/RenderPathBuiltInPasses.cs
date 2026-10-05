@@ -1089,7 +1089,8 @@ public partial class AmbientOcclusionPass : RenderPass
         0.0f, 0.0f, 0.0f, 1.0f);
     private static readonly NamedSamplerStateDesc[] SsaoSamplers =
     [
-        ("Albedo", SamplerStateDesc.Bilinear()),
+        // The noise texture: the shader tiles it over the target, one texel for each pixel
+        ("Albedo", SamplerStateDesc.Nearest(TextureAddressMode.Wrap)),
         ("Normal", SamplerStateDesc.Bilinear()),
         ("DepthBuffer", SamplerStateDesc.Nearest())
     ];

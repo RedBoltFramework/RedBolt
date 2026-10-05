@@ -209,7 +209,9 @@ void main()
     // Sample textures at the position
     vec3 position = SamplePosition(vTexCoord);
     half3 normal = SampleOrReconstructNormal(position, vTexCoord);
-    half3 noise = DecodeNormal(texture(sAlbedo, vTexCoord / cInputInvSize / 4.0));
+    // Tile the 4x4 noise texture over the target, one texel for each pixel of the target at every downscale value.
+    // The sampler wraps and does not filter.
+    half3 noise = DecodeNormal(texture(sAlbedo, gl_FragCoord.xy / 4.0));
 
     // Sample points around position
     half weightSum = 0.00001;
