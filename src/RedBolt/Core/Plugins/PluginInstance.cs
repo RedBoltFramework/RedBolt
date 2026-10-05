@@ -6,10 +6,10 @@ namespace RedBolt.Plugins;
 
 using RedBolt.Core;
 
-/// <summary>Loadable module that owns one plugin application.</summary>
-public abstract class Plugin : RedObject
+/// <summary>Wrapper that manages loading and unloading of one plugin application.</summary>
+public abstract class PluginInstance : RedObject
 {
-    protected Plugin(string name, PluginReloadPolicy reloadPolicy, bool autoLoad = false)
+    protected PluginInstance(string name, PluginReloadPolicy reloadPolicy, bool autoLoad = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         Name = name;
@@ -48,9 +48,9 @@ public abstract class Plugin : RedObject
     public virtual void RollbackReload() { }
 }
 
-internal sealed class StaticPlugin : Plugin
+internal sealed class StaticPluginInstance : PluginInstance
 {
-    public StaticPlugin(string name, Func<PluginApplication> factory)
+    public StaticPluginInstance(string name, Func<PluginApplication> factory)
         : base(name, PluginReloadPolicy.ProcessResident)
     {
         _factory = factory;

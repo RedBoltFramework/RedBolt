@@ -41,33 +41,33 @@ public sealed class PluginManager : RedObject
         Commit();
     }
 
-    public bool AddPlugin(Plugin plugin)
+    public bool AddPlugin(PluginInstance instance)
     {
-        ArgumentNullException.ThrowIfNull(plugin);
-        if (!_available.TryAdd(plugin.Name, plugin))
+        ArgumentNullException.ThrowIfNull(instance);
+        if (!_available.TryAdd(instance.Name, instance))
             return false;
-        if (plugin.AutoLoad)
+        if (instance.AutoLoad)
             _reloadPending = true;
         return true;
     }
 
     public bool AddStaticPlugin(string name, Func<PluginApplication> factory) =>
-        AddPlugin(new StaticPlugin(name, factory));
+        AddPlugin(new StaticPluginInstance(name, factory));
 
     public PluginApplication? GetPluginApplication(string name, bool loadedOnly = false)
     {
-        if (!_available.TryGetValue(name, out var plugin))
+        if (!_available.TryGetValue(name, out var instance))
             return null;
-        if (plugin.Application is null && !loadedOnly && !plugin.Load())
+        if (instance.Application is null && !loadedOnly && !instance.Load())
             return null;
-        return plugin.Application;
+        return instance.Application;
     }
 
     public IReadOnlyList<string> EnumerateAvailablePlugins() =>
         _available.Keys.Order(StringComparer.Ordinal).ToArray();
 
     public bool IsPluginAutoLoaded(string name) =>
-        _available.TryGetValue(name, out var plugin) && plugin.AutoLoad;
+        _available.TryGetValue(name, out var instance) && instance.AutoLoad;
 
     public void SetPluginsLoaded(IEnumerable<string> plugins)
     {
@@ -104,7 +104,7 @@ public sealed class PluginManager : RedObject
     {
         if (_stack?.IsStarted == true && !_stack.IsSuspendSupported)
             return "Started plugins do not support hot reload; stop playing first.";
-        return _available.Values.FirstOrDefault(static plugin => plugin.IsOutOfDate && !plugin.IsReadyToReload) is not null
+        return _available.Values.FirstOrDefault(static instance => instance.IsOutOfDate && !instance.IsReadyToReload) is not null
             ? "Plugin assemblies are still being written."
             : null;
     }
@@ -117,7 +117,7 @@ public sealed class PluginManager : RedObject
             _stopPending = false;
         }
 
-        if (_autoReload && _available.Values.Any(static plugin => plugin.IsOutOfDate)
+        if (_autoReload && _available.Values.Any(static instance => instance.IsOutOfDate)
             && GetReloadBlockedReason() is null)
         {
             _reloadPending = true;
@@ -151,10 +151,10 @@ public sealed class PluginManager : RedObject
     {
         _stack?.Dispose();
         _stack = null;
-        foreach (var plugin in _available.Values)
+        foreach (var instance in _available.Values)
         {
-            plugin.Unload();
-            plugin.Dispose();
+            instance.Unload();
+            instance.Dispose();
         }
         _available.Clear();
         base.Dispose();
@@ -167,20 +167,20 @@ public sealed class PluginManager : RedObject
         var state = wasStarted ? _stack!.Suspend() : null;
         _stack?.Dispose();
         _stack = null;
-        var changed = _available.Values.Where(static plugin => plugin.IsOutOfDate).ToArray();
+        var changed = _available.Values.Where(static instance => instance.IsOutOfDate).ToArray();
         try
         {
-            foreach (var plugin in changed)
+            foreach (var instance in changed)
             {
-                if (!plugin.BeginReload())
-                    throw new InvalidOperationException($"Plugin '{plugin.Name}' could not prepare a replacement.");
+                if (!instance.BeginReload())
+                    throw new InvalidOperationException($"Plugin '{instance.Name}' could not prepare a replacement.");
             }
 
             _stack = CreateStack();
             if (wasStarted)
                 _stack.Resume(state!);
-            foreach (var plugin in changed)
-                plugin.CommitReload();
+            foreach (var instance in changed)
+                instance.CommitReload();
         }
         catch (Exception exception)
         {
@@ -201,35 +201,35 @@ public sealed class PluginManager : RedObject
 
     private PluginStack CreateStack()
     {
-        var modules = new List<Plugin>();
+        var instances = new List<PluginInstance>();
         var names = _available.Values
-            .Where(static plugin => plugin.AutoLoad)
-            .OrderBy(static plugin => plugin.LoadOrder)
-            .ThenBy(static plugin => plugin.Name, StringComparer.Ordinal)
-            .Select(static plugin => plugin.Name)
+            .Where(static instance => instance.AutoLoad)
+            .OrderBy(static instance => instance.LoadOrder)
+            .ThenBy(static instance => instance.Name, StringComparer.Ordinal)
+            .Select(static instance => instance.Name)
             .Concat(_loadedPlugins)
             .Distinct(StringComparer.Ordinal);
         foreach (var name in names)
         {
-            if (!_available.TryGetValue(name, out var plugin))
+            if (!_available.TryGetValue(name, out var instance))
             {
                 Log.GetLogger().LogWarning("Plugin '{Plugin}' was not found.", name);
                 continue;
             }
-            if (!plugin.Load())
+            if (!instance.Load())
             {
                 Log.GetLogger().LogError("Plugin '{Plugin}' could not be loaded.", name);
                 continue;
             }
-            modules.Add(plugin);
+            instances.Add(instance);
         }
-        return new PluginStack(modules);
+        return new PluginStack(instances);
     }
 
     private static string[] SplitList(string value) => value.Split(
         [';', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-    private readonly Dictionary<string, Plugin> _available = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, PluginInstance> _available = new(StringComparer.Ordinal);
     private readonly List<string> _loadedPlugins = [];
     private PluginStack? _stack;
     private string _mainPlugin = string.Empty;
@@ -241,29 +241,29 @@ public sealed class PluginManager : RedObject
 
 internal sealed class PluginStack : IDisposable
 {
-    public PluginStack(IReadOnlyList<Plugin> plugins)
+    public PluginStack(IReadOnlyList<PluginInstance> instances)
     {
-        _plugins = plugins;
+        _instances = instances;
         var loaded = 0;
         try
         {
-            foreach (var plugin in _plugins)
+            foreach (var instance in _instances)
             {
-                plugin.Application!.LoadPlugin();
+                instance.Application!.LoadPlugin();
                 ++loaded;
             }
         }
         catch
         {
             for (var index = loaded - 1; index >= 0; --index)
-                _plugins[index].Application!.UnloadPlugin();
+                _instances[index].Application!.UnloadPlugin();
             throw;
         }
     }
 
     public bool IsStarted { get; private set; }
 
-    public bool IsSuspendSupported => _plugins.All(static plugin => plugin.Application!.IsSuspendSupported);
+    public bool IsSuspendSupported => _instances.All(static instance => instance.Application!.IsSuspendSupported);
 
     public PluginApplication? MainPlugin { get; private set; }
 
@@ -271,21 +271,21 @@ internal sealed class PluginStack : IDisposable
     {
         if (IsStarted)
             return;
-        MainPlugin = _plugins.Select(static plugin => plugin.Application!)
+        MainPlugin = _instances.Select(static instance => instance.Application!)
             .FirstOrDefault(application => application.IsMain && application.PluginName == mainPlugin)
-            ?? _plugins.Select(static plugin => plugin.Application!).FirstOrDefault(static application => application.IsMain);
-        foreach (var plugin in _plugins)
-            plugin.Application!.StartApplication(ReferenceEquals(plugin.Application, MainPlugin));
+            ?? _instances.Select(static instance => instance.Application!).FirstOrDefault(static application => application.IsMain);
+        foreach (var instance in _instances)
+            instance.Application!.StartApplication(ReferenceEquals(instance.Application, MainPlugin));
         IsStarted = true;
     }
 
     public Dictionary<string, PluginState> Suspend()
     {
         var result = new Dictionary<string, PluginState>(StringComparer.Ordinal);
-        for (var index = _plugins.Count - 1; index >= 0; --index)
+        for (var index = _instances.Count - 1; index >= 0; --index)
         {
-            var plugin = _plugins[index];
-            result[plugin.Name] = new PluginState(plugin.Version, plugin.Application!.SuspendApplication());
+            var instance = _instances[index];
+            result[instance.Name] = new PluginState(instance.Version, instance.Application!.SuspendApplication());
         }
         IsStarted = false;
         return result;
@@ -293,10 +293,10 @@ internal sealed class PluginStack : IDisposable
 
     public void Resume(IReadOnlyDictionary<string, PluginState> state)
     {
-        foreach (var plugin in _plugins)
+        foreach (var instance in _instances)
         {
-            state.TryGetValue(plugin.Name, out var previous);
-            plugin.Application!.ResumeApplication(previous.State, previous.Version != plugin.Version);
+            state.TryGetValue(instance.Name, out var previous);
+            instance.Application!.ResumeApplication(previous.State, previous.Version != instance.Version);
         }
         IsStarted = true;
     }
@@ -305,19 +305,19 @@ internal sealed class PluginStack : IDisposable
     {
         if (!IsStarted)
             return;
-        for (var index = _plugins.Count - 1; index >= 0; --index)
-            _plugins[index].Application!.StopApplication();
+        for (var index = _instances.Count - 1; index >= 0; --index)
+            _instances[index].Application!.StopApplication();
         IsStarted = false;
     }
 
     public void Dispose()
     {
         Stop();
-        for (var index = _plugins.Count - 1; index >= 0; --index)
-            _plugins[index].Application!.UnloadPlugin();
+        for (var index = _instances.Count - 1; index >= 0; --index)
+            _instances[index].Application!.UnloadPlugin();
     }
 
-    private readonly IReadOnlyList<Plugin> _plugins;
+    private readonly IReadOnlyList<PluginInstance> _instances;
 }
 
 internal readonly record struct PluginState(uint Version, string? State);

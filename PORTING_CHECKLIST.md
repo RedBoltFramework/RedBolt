@@ -682,17 +682,17 @@ Accepted deviations:
 
 ## B15. Plugins `OPTIONAL` — plugin/module system; depends on Core, Engine
 
-- [ ] `Plugin.h`
-  - [ ] `Plugin : Object`
+- [ ] `PluginInstance.h`
+  - [ ] `PluginInstance : Object`
 - [ ] `PluginApplication.h`
   - [ ] `PluginApplication : Object`
   - [ ] `MainPluginApplication : PluginApplication`
-- [ ] `DynamicModule.h`
-  - [ ] `DynamicModule : Object`
-- [ ] `ModulePlugin.h`
-  - [ ] `ModulePlugin : Plugin`
-- [ ] `ScriptBundlePlugin.h`
-  - [ ] `ScriptBundlePlugin : Plugin`
+- [ ] `DynamicLibrary.h`
+  - [ ] `DynamicLibrary : Object`
+- [ ] `DynamicLibraryPluginInstance.h`
+  - [ ] `DynamicLibraryPluginInstance : PluginInstance`
+- [ ] `ScriptBundlePluginInstance.h`
+  - [ ] `ScriptBundlePluginInstance : PluginInstance`
 - [ ] `PluginManager.h`
   - [ ] `PluginStack : Object`
   - [ ] `PluginManager : Object`

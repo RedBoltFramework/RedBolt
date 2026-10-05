@@ -77,7 +77,7 @@ public sealed class ManagedPluginCatalog
     {
         ArgumentNullException.ThrowIfNull(manager);
         foreach (var descriptor in Scan())
-            manager.AddPlugin(new ManagedAssemblyPlugin(descriptor));
+            manager.AddPlugin(new ManagedAssemblyPluginInstance(descriptor));
     }
 
     internal static ManagedPluginDescriptor? TryReadDescriptor(string path, bool includeImplicitModules = true)
@@ -206,9 +206,9 @@ public sealed record ManagedPluginDescriptor(
     long Length,
     bool IsImplicitModule);
 
-internal sealed class ManagedAssemblyPlugin : Plugin
+internal sealed class ManagedAssemblyPluginInstance : PluginInstance
 {
-    public ManagedAssemblyPlugin(ManagedPluginDescriptor descriptor)
+    public ManagedAssemblyPluginInstance(ManagedPluginDescriptor descriptor)
         : base(descriptor.Name, descriptor.ReloadPolicy, descriptor.AutoLoad)
     {
         _descriptor = descriptor;
