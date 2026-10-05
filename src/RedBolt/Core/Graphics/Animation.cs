@@ -123,7 +123,8 @@ public partial class Animation : ResourceWithMetadata
         LoadTracksFromXML(source);
         LoadVariantTracksFromXML(source);
         LoadTriggersFromXML(source);
-        LoadMetadataFromXML(source);
+        using (var metadata = CreateMetadataFromXML(source))
+            SetMetadata(metadata);
 
         return true;
     }
@@ -247,7 +248,8 @@ public partial class Animation : ResourceWithMetadata
             LoadTracksFromXML(root);
             LoadVariantTracksFromXML(root);
             LoadTriggersFromXML(root);
-            LoadMetadataFromXML(root);
+            using (var metadata = CreateMetadataFromXML(root))
+                SetMetadata(metadata);
         }
 
         SetMemoryUse(checked((int)dataSize));
@@ -548,7 +550,7 @@ public partial class Animation : ResourceWithMetadata
 
         foreach (var trigger in _triggers)
             ret._triggers.Add(trigger.Clone());
-        ret.CopyMetadata(this);
+        ret.SetMetadata(GetMetadata());
         ret.SetMemoryUse(MemoryUse);
         return ret;
     }

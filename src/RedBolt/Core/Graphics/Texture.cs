@@ -257,7 +257,8 @@ public class Texture : ResourceWithMetadata
 
     public void SetParameters(XMLElement element)
     {
-        LoadMetadataFromXML(element);
+        using (var metadata = CreateMetadataFromXML(element))
+            SetMetadata(metadata);
         for (var paramElement = element.GetChild(); paramElement.NotNull; paramElement = paramElement.GetNext())
         {
             var name = paramElement.Name;

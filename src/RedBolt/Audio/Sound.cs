@@ -289,7 +289,8 @@ public sealed partial class Sound : ResourceWithMetadata
             return;
 
         var rootElement = file.GetRoot();
-        LoadMetadataFromXML(rootElement);
+        using (var metadata = CreateMetadataFromXML(rootElement))
+            SetMetadata(metadata);
 
         for (var parameterElement = rootElement.GetChild(); parameterElement.NotNull; parameterElement = parameterElement.GetNext())
         {

@@ -895,8 +895,8 @@ public sealed class ModelView : RedObject
         _name = model!.Name;
 
         // Read metadata
-        foreach (var key in model.GetMetadataKeys())
-            _metadata.Add(key, model.GetMetadata(key).Clone());
+        foreach (var (key, value) in model.GetMetadata())
+            _metadata.Add(key, value.Clone());
 
         var modelVertexBuffers = model.GetVertexBuffers();
         var modelGeometries = model.GetGeometries();

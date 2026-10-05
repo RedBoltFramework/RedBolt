@@ -401,7 +401,10 @@ public sealed partial class Model : ResourceWithMetadata, ICloneable
                 xmlSource.Close();
                 using var xmlFile = new XMLFile();
                 if (readBytes == xmlData.Length && xmlFile.BeginLoad(new MemoryBuffer(xmlData)))
-                    LoadMetadataFromXML(xmlFile.GetRoot());
+                {
+                    using var metadata = CreateMetadataFromXML(xmlFile.GetRoot());
+                    SetMetadata(metadata);
+                }
             }
         }
 
