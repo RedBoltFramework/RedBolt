@@ -59,6 +59,8 @@ public partial class Image : Resource
 
     private Image? _nextSibling;
 
+    private ImageMipMapParams _mipParams = new();
+
     public override bool BeginLoad(Deserializer source)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -438,6 +440,9 @@ public partial class Image : Resource
             _ => SavePNG(absoluteFileName)
         };
     }
+
+    /// <summary>Set mipmap generation parameters. Does not affect existing mipmap levels.</summary>
+    public void SetMipMapParams(in ImageMipMapParams mipParams) => _mipParams = mipParams;
 
     public bool SetSize(int width, int height, int components) => SetSize(width, height, 1, components);
 
@@ -1120,6 +1125,54 @@ public partial class Image : Resource
 
     public TextureFormat GetCompressedFormat() => CompressedFormat;
 
+    private static void CalculateNextLevelColorAverage(
+        byte[] output, int outputOffset, byte[] source, ReadOnlySpan<int> inputs, int numComponents)
+    {
+        for (var component = 0; component < numComponents; ++component)
+        {
+            var sum = 0u;
+            for (var i = 0; i < inputs.Length; ++i)
+                sum += source[inputs[i] + component];
+            output[outputOffset + component] = (byte)(sum / (uint)inputs.Length);
+        }
+    }
+
+    private static void CalculateNextLevelColorAlphaWeighted(
+        byte[] output, int outputOffset, byte[] source, ReadOnlySpan<int> inputs, float alphaFactor)
+    {
+        var result = Color.TransparentBlack;
+        var totalAlpha = 0.0f;
+
+        for (var i = 0; i < inputs.Length; ++i)
+        {
+            var input = new Color(MemoryMarshal.Read<uint>(source.AsSpan(inputs[i], sizeof(uint))));
+            result.R += input.R * input.A;
+            result.G += input.G * input.A;
+            result.B += input.B * input.A;
+            totalAlpha += input.A;
+        }
+
+        if (totalAlpha > 0.0f)
+            result *= 1.0f / totalAlpha;
+        result.A = MathDefs.Clamp(totalAlpha / inputs.Length * alphaFactor, 0.0f, 1.0f);
+
+        var packed = result.ToUInt();
+        MemoryMarshal.Write(output.AsSpan(outputOffset, sizeof(uint)), in packed);
+    }
+
+    private static void CalculateNextLevelColor(
+        byte[] output, int outputOffset, byte[] source, ReadOnlySpan<int> inputs, int numComponents,
+        in ImageMipMapParams mipParams)
+    {
+        if (mipParams.Algorithm == ImageMipMapAlgorithm.AlphaWeightedLinear && numComponents == 4)
+            CalculateNextLevelColorAlphaWeighted(output, outputOffset, source, inputs, mipParams.AlphaScaleFactor);
+        else
+            CalculateNextLevelColorAverage(output, outputOffset, source, inputs, numComponents);
+    }
+
+    /// <summary>Return mipmap generation parameters.</summary>
+    public ImageMipMapParams GetMipMapParams() => _mipParams;
+
     public Image? GetNextLevel()
     {
         if (IsCompressed())
@@ -1139,23 +1192,28 @@ public partial class Image : Resource
         var nextHeight = SystemMath.Max(Height / 2, 1);
         var nextDepth = SystemMath.Max(Depth / 2, 1);
         var mipImage = new Image();
+        mipImage.SetMipMapParams(GetMipMapParams());
         if (Depth > 1)
             mipImage.SetSize(nextWidth, nextHeight, nextDepth, Components);
         else
             mipImage.SetSize(nextWidth, nextHeight, Components);
 
+        // The input offsets are reused for every output pixel to avoid allocations.
+        Span<int> inputs = stackalloc int[8];
+        var inputs2 = inputs[..2];
+        var inputs4 = inputs[..4];
+        var inputs8 = inputs[..8];
+
         // 1D case.
         if (Depth == 1 && (Height == 1 || Width == 1))
         {
-            var outputLength = SystemMath.Max(nextWidth, nextHeight);
-            for (var x = 0; x < outputLength; ++x)
+            // Loop using the larger dimension.
+            var size = SystemMath.Max(nextWidth, nextHeight);
+            for (var x = 0; x < size; ++x)
             {
-                for (var component = 0; component < Components; ++component)
-                {
-                    var sourceOffset = x * 2 * Components + component;
-                    mipImage._data[x * Components + component] =
-                        (byte)((_data[sourceOffset] + _data[sourceOffset + Components]) >> 1);
-                }
+                inputs2[0] = (x * 2) * Components;
+                inputs2[1] = (x * 2 + 1) * Components;
+                CalculateNextLevelColor(mipImage._data, x * Components, _data, inputs2, Components, _mipParams);
             }
         }
         // 2D case.
@@ -1163,45 +1221,50 @@ public partial class Image : Resource
         {
             for (var y = 0; y < nextHeight; ++y)
             {
+                var inUpper = (y * 2) * Width * Components;
+                var inLower = (y * 2 + 1) * Width * Components;
+                var output = y * nextWidth * Components;
+
                 for (var x = 0; x < nextWidth; ++x)
                 {
-                    var upperLeft = ((y * 2) * Width + x * 2) * Components;
-                    var lowerLeft = upperLeft + Width * Components;
-                    var output = (y * nextWidth + x) * Components;
-                    for (var component = 0; component < Components; ++component)
-                    {
-                        mipImage._data[output + component] = (byte)((
-                            _data[upperLeft + component] + _data[upperLeft + Components + component]
-                            + _data[lowerLeft + component] + _data[lowerLeft + Components + component]) >> 2);
-                    }
+                    inputs4[0] = inUpper + (x * 2) * Components;
+                    inputs4[1] = inUpper + (x * 2 + 1) * Components;
+                    inputs4[2] = inLower + (x * 2) * Components;
+                    inputs4[3] = inLower + (x * 2 + 1) * Components;
+                    CalculateNextLevelColor(
+                        mipImage._data, output + x * Components, _data, inputs4, Components, _mipParams);
                 }
             }
         }
         // 3D case.
         else
         {
-            var sourceSliceStride = Width * Height * Components;
             for (var z = 0; z < nextDepth; ++z)
             {
+                var inOuter = (z * 2) * Width * Height * Components;
+                var inInner = (z * 2 + 1) * Width * Height * Components;
+
                 for (var y = 0; y < nextHeight; ++y)
                 {
+                    var inOuterUpper = inOuter + (y * 2) * Width * Components;
+                    var inOuterLower = inOuter + (y * 2 + 1) * Width * Components;
+                    var inInnerUpper = inInner + (y * 2) * Width * Components;
+                    var inInnerLower = inInner + (y * 2 + 1) * Width * Components;
+                    var output = (z * nextWidth * nextHeight + y * nextWidth) * Components;
+
+                    // Upstream rbfx steps `x += 2` here and leaves the odd output pixels undefined. Visit every pixel.
                     for (var x = 0; x < nextWidth; ++x)
                     {
-                        var outerUpperLeft = ((z * 2 * Height + y * 2) * Width + x * 2) * Components;
-                        var innerUpperLeft = outerUpperLeft + sourceSliceStride;
-                        var output = ((z * nextHeight + y) * nextWidth + x) * Components;
-                        for (var component = 0; component < Components; ++component)
-                        {
-                            mipImage._data[output + component] = (byte)((
-                                _data[outerUpperLeft + component]
-                                + _data[outerUpperLeft + Components + component]
-                                + _data[outerUpperLeft + Width * Components + component]
-                                + _data[outerUpperLeft + Width * Components + Components + component]
-                                + _data[innerUpperLeft + component]
-                                + _data[innerUpperLeft + Components + component]
-                                + _data[innerUpperLeft + Width * Components + component]
-                                + _data[innerUpperLeft + Width * Components + Components + component]) >> 3);
-                        }
+                        inputs8[0] = inOuterUpper + (x * 2) * Components;
+                        inputs8[1] = inOuterUpper + (x * 2 + 1) * Components;
+                        inputs8[2] = inOuterLower + (x * 2) * Components;
+                        inputs8[3] = inOuterLower + (x * 2 + 1) * Components;
+                        inputs8[4] = inInnerUpper + (x * 2) * Components;
+                        inputs8[5] = inInnerUpper + (x * 2 + 1) * Components;
+                        inputs8[6] = inInnerLower + (x * 2) * Components;
+                        inputs8[7] = inInnerLower + (x * 2 + 1) * Components;
+                        CalculateNextLevelColor(
+                            mipImage._data, output + x * Components, _data, inputs8, Components, _mipParams);
                     }
                 }
             }
@@ -1221,6 +1284,7 @@ public partial class Image : Resource
             return null;
 
         var rgba = new Image();
+        rgba.SetMipMapParams(GetMipMapParams());
         rgba.SetSize(Width, Height, Depth, 4);
         var source = 0;
         var destination = 0;
@@ -1314,6 +1378,7 @@ public partial class Image : Resource
             return null;
 
         var decompressed = new Image();
+        decompressed.SetMipMapParams(GetMipMapParams());
         if (!decompressed.SetSize(compressedLevel.Width, compressedLevel.Height, 4))
             return null;
 
@@ -1331,6 +1396,7 @@ public partial class Image : Resource
         if (!IsCompressed())
         {
             var subimage = new Image();
+            subimage.SetMipMapParams(GetMipMapParams());
             subimage.SetSize(rect.Width, rect.Height, Components);
             var rowSize = rect.Width * Components;
             var source = (rect.Top * Width + rect.Left) * Components;
@@ -1419,6 +1485,7 @@ public partial class Image : Resource
             CompressedFormat = CompressedFormat,
             NumCompressedLevels = subimageLevels,
             Components = Components,
+            _mipParams = _mipParams,
             _data = subimageData.ToArray()
         };
         compressedSubimage.MemoryUse = compressedSubimage._data.Length;

@@ -54,14 +54,18 @@ public partial class Texture2D : Texture
             return false;
         }
 
-        // Precalculate mip levels if async loading
-        if (AsyncLoadState == AsyncLoadState.Loading)
-            _loadImage.PrecalculateLevels();
-
         // Load the optional parameters file
         var cache = GetSubsystem<ResourceCache>()!;
         var parametersName = Path.ChangeExtension(Name, ".xml");
         _loadParameters = cache.GetTempResource<XMLFile>(parametersName, false);
+
+        var mipMapParams = CreateMipMapParamsFromXML(_loadParameters);
+        _loadImage.SetMipMapParams(mipMapParams);
+
+        // Precalculate mip levels if async loading
+        if (AsyncLoadState == AsyncLoadState.Loading)
+            _loadImage.PrecalculateLevels();
+
         return true;
     }
 

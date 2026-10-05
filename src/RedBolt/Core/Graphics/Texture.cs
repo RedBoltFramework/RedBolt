@@ -399,6 +399,40 @@ public class Texture : ResourceWithMetadata
         }
     }
 
+    private static readonly string[] MipMapAlgorithmNames =
+    [
+        "average",
+        "alphaweighted",
+    ];
+
+    /// <summary>Read mipmap generation parameters from XML.</summary>
+    protected static ImageMipMapParams CreateMipMapParamsFromXML(XMLElement element)
+    {
+        var result = new ImageMipMapParams();
+        var paramElement = element.GetChild("mipmapgen");
+        if (paramElement.NotNull)
+        {
+            var mode = paramElement.GetAttributeLower("algorithm");
+            var algorithm = ImageMipMapAlgorithm.Average;
+            for (var i = 0; i < MipMapAlgorithmNames.Length; ++i)
+            {
+                if (string.Equals(MipMapAlgorithmNames[i], mode, StringComparison.Ordinal))
+                {
+                    algorithm = (ImageMipMapAlgorithm)i;
+                    break;
+                }
+            }
+
+            result.Algorithm = algorithm;
+            result.AlphaScaleFactor = paramElement.GetFloat("alphascale");
+        }
+
+        return result;
+    }
+
+    protected static ImageMipMapParams CreateMipMapParamsFromXML(XMLFile? file) =>
+        file is not null ? CreateMipMapParamsFromXML(file.GetRoot()) : new ImageMipMapParams();
+
     protected void CheckTextureBudget(StringHash type)
     {
         var cache = GetSubsystem<ResourceCache>()!;

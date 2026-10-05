@@ -63,6 +63,8 @@ public partial class Texture2DArray : Texture
             return false;
         }
 
+        var mipMapParams = CreateMipMapParamsFromXML(_loadParameters);
+
         for (var i = _loadImages.Count - 1; i >= 0; --i)
             _loadImages[i]?.Dispose();
         _loadImages.Clear();
@@ -75,7 +77,9 @@ public partial class Texture2DArray : Texture
             if (!name.Contains('/') && !name.Contains('\\'))
                 name = texturePath + name;
 
-            _loadImages.Add(cache.GetTempResource<Image>(name));
+            var loadImage = cache.GetTempResource<Image>(name);
+            loadImage?.SetMipMapParams(mipMapParams);
+            _loadImages.Add(loadImage);
             cache.StoreResourceDependency(this, name);
         }
 

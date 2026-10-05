@@ -65,6 +65,8 @@ public partial class Texture3D : Texture
             return false;
         }
 
+        var mipMapParams = CreateMipMapParamsFromXML(_loadParameters);
+
         var textureElement = _loadParameters.GetRoot();
         var volumeElement = textureElement.GetChild("volume");
         var colorLutElement = textureElement.GetChild("colorlut");
@@ -79,6 +81,7 @@ public partial class Texture3D : Texture
             var image = cache.GetTempResource<Image>(name);
             _loadImage?.Dispose();
             _loadImage = image;
+            _loadImage?.SetMipMapParams(mipMapParams);
             // Precalculate mip levels if async loading
             if (_loadImage is not null && AsyncLoadState == AsyncLoadState.Loading)
                 _loadImage.PrecalculateLevels();
@@ -95,6 +98,7 @@ public partial class Texture3D : Texture
             using var file = cache.GetFile(name);
             _loadImage?.Dispose();
             _loadImage = new Image();
+            _loadImage.SetMipMapParams(mipMapParams);
             if (!_loadImage.LoadColorLUT(file!))
             {
                 _loadParameters.Dispose();

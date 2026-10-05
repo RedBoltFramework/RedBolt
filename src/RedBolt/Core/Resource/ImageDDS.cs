@@ -390,6 +390,8 @@ public static class ImageDds
         for (var imageIndex = 0u; imageIndex < imageChainCount; ++imageIndex)
         {
             var target = imageIndex == 0 ? image : new Image();
+            if (imageIndex != 0)
+                target.SetMipMapParams(image.GetMipMapParams());
             var storedData = formatInfo.Format == TextureFormat.TexFormatRgba8Unorm
                     && !AreTextureComponentsMatching(pixelFormat, formatInfo.Format)
                 ? ReadRgbaLevels(fileData, ref offset, width, height, depth, mipMapCount, formatInfo)
