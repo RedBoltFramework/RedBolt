@@ -157,7 +157,7 @@ public interface IAssemblyBackend : IDisposable
     AssemblyPreparation Prepare(AssemblyLoadInput input);
 
     /// <summary>
-    /// Replace the active generation. Before calling this, consumers must stop the previous plugin application,
+    /// Replace the active generation. Before calling this, consumers must stop the previous plugin,
     /// release its managed and native resources, unregister callbacks and workers, and call <see cref="UserCodeAssembly.Unregister"/>.
     /// </summary>
     UserCodeAssembly Commit(AssemblyPreparation preparation);

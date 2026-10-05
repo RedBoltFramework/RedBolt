@@ -11,7 +11,7 @@ using RedBolt.Core;
 using RedBolt.IO;
 
 /// <summary>Base class for code hosted by <see cref="PluginManager"/>.</summary>
-public abstract class PluginApplication : RedObject
+public abstract class Plugin : RedObject
 {
     public string PluginName { get; internal set; } = string.Empty;
 
@@ -27,7 +27,7 @@ public abstract class PluginApplication : RedObject
         return Path.GetFullPath(Path.Combine(PluginDirectory, relativePath));
     }
 
-    public virtual bool IsMain => false;
+    public virtual bool IsExecutable => false;
 
     public virtual bool IsSuspendSupported => true;
 
@@ -104,10 +104,10 @@ public abstract class PluginApplication : RedObject
     protected virtual void Resume(Archive? archive, bool differentVersion) { }
 }
 
-/// <summary>A plugin application that may be selected as the process entry point.</summary>
-public abstract class MainPluginApplication : PluginApplication
+/// <summary>A plugin that may be selected as the process entry point.</summary>
+public abstract class ExecutablePlugin : Plugin
 {
-    public sealed override bool IsMain => true;
+    public sealed override bool IsExecutable => true;
 
     public override bool IsSuspendSupported => false;
 }

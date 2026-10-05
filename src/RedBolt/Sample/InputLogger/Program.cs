@@ -38,8 +38,8 @@ internal static class InputLoggerProgram
 }
 
 /// <summary>Input event logger example.</summary>
-// TODO: port MainPluginApplication and URHO3D_DEFINE_PLUGIN_MAIN when the managed plugin application API is available.
-// C++: class InputLogger : public MainPluginApplication
+// TODO: port ExecutablePlugin and URHO3D_EXPORT_PLUGIN when the managed plugin API is available.
+// C++: class InputLogger : public ExecutablePlugin
 sealed class InputLoggerApplication : Application
 {
     private sealed class LoggedEvent

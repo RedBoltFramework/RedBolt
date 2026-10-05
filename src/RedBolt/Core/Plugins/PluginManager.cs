@@ -27,7 +27,7 @@ public sealed class PluginManager : RedObject
 
     public bool IsStarted => _stack?.IsStarted == true;
 
-    public PluginApplication? MainPlugin => _stack?.MainPlugin;
+    public Plugin? MainPlugin => _stack?.MainPlugin;
 
     public Action QuitApplicationCallback { get; set; } = static () =>
         Context.Instance.GetSubsystem<Engine>()?.Exit();
@@ -51,16 +51,16 @@ public sealed class PluginManager : RedObject
         return true;
     }
 
-    public bool AddStaticPlugin(string name, Func<PluginApplication> factory) =>
+    public bool AddStaticPlugin(string name, Func<Plugin> factory) =>
         AddPlugin(new StaticPluginInstance(name, factory));
 
-    public PluginApplication? GetPluginApplication(string name, bool loadedOnly = false)
+    public Plugin? GetPlugin(string name, bool loadedOnly = false)
     {
         if (!_available.TryGetValue(name, out var instance))
             return null;
-        if (instance.Application is null && !loadedOnly && !instance.Load())
+        if (instance.Plugin is null && !loadedOnly && !instance.Load())
             return null;
-        return instance.Application;
+        return instance.Plugin;
     }
 
     public IReadOnlyList<string> EnumerateAvailablePlugins() =>
@@ -249,33 +249,33 @@ internal sealed class PluginStack : IDisposable
         {
             foreach (var instance in _instances)
             {
-                instance.Application!.LoadPlugin();
+                instance.Plugin!.LoadPlugin();
                 ++loaded;
             }
         }
         catch
         {
             for (var index = loaded - 1; index >= 0; --index)
-                _instances[index].Application!.UnloadPlugin();
+                _instances[index].Plugin!.UnloadPlugin();
             throw;
         }
     }
 
     public bool IsStarted { get; private set; }
 
-    public bool IsSuspendSupported => _instances.All(static instance => instance.Application!.IsSuspendSupported);
+    public bool IsSuspendSupported => _instances.All(static instance => instance.Plugin!.IsSuspendSupported);
 
-    public PluginApplication? MainPlugin { get; private set; }
+    public Plugin? MainPlugin { get; private set; }
 
     public void Start(string mainPlugin)
     {
         if (IsStarted)
             return;
-        MainPlugin = _instances.Select(static instance => instance.Application!)
-            .FirstOrDefault(application => application.IsMain && application.PluginName == mainPlugin)
-            ?? _instances.Select(static instance => instance.Application!).FirstOrDefault(static application => application.IsMain);
+        MainPlugin = _instances.Select(static instance => instance.Plugin!)
+            .FirstOrDefault(plugin => plugin.IsExecutable && plugin.PluginName == mainPlugin)
+            ?? _instances.Select(static instance => instance.Plugin!).FirstOrDefault(static plugin => plugin.IsExecutable);
         foreach (var instance in _instances)
-            instance.Application!.StartApplication(ReferenceEquals(instance.Application, MainPlugin));
+            instance.Plugin!.StartApplication(ReferenceEquals(instance.Plugin, MainPlugin));
         IsStarted = true;
     }
 
@@ -285,7 +285,7 @@ internal sealed class PluginStack : IDisposable
         for (var index = _instances.Count - 1; index >= 0; --index)
         {
             var instance = _instances[index];
-            result[instance.Name] = new PluginState(instance.Version, instance.Application!.SuspendApplication());
+            result[instance.Name] = new PluginState(instance.Version, instance.Plugin!.SuspendApplication());
         }
         IsStarted = false;
         return result;
@@ -296,7 +296,7 @@ internal sealed class PluginStack : IDisposable
         foreach (var instance in _instances)
         {
             state.TryGetValue(instance.Name, out var previous);
-            instance.Application!.ResumeApplication(previous.State, previous.Version != instance.Version);
+            instance.Plugin!.ResumeApplication(previous.State, previous.Version != instance.Version);
         }
         IsStarted = true;
     }
@@ -306,7 +306,7 @@ internal sealed class PluginStack : IDisposable
         if (!IsStarted)
             return;
         for (var index = _instances.Count - 1; index >= 0; --index)
-            _instances[index].Application!.StopApplication();
+            _instances[index].Plugin!.StopApplication();
         IsStarted = false;
     }
 
@@ -314,7 +314,7 @@ internal sealed class PluginStack : IDisposable
     {
         Stop();
         for (var index = _instances.Count - 1; index >= 0; --index)
-            _instances[index].Application!.UnloadPlugin();
+            _instances[index].Plugin!.UnloadPlugin();
     }
 
     private readonly IReadOnlyList<PluginInstance> _instances;

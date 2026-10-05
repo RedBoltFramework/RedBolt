@@ -46,7 +46,7 @@
 - [-] `109_KinematicCharacter` and `110_AdvancedNetworking` — moved to the sibling `RedBolt.PhysicsJolt` repository
 - [x] `112_AggregatedInput` — direction aggregation, directional-pad aggregation, raw key/joystick/hat/disconnect/touch logging, synthesized key logging and repeats, and Dear ImGui visualization are ported and runtime-verified
 - [x] `113_Actions` — engine `ActionBuilder`, the native easing gallery, sequencing, parallel actions, movement, rotation, scale, repeat modes, attribute animation, shader-parameter animation, typed events, callbacks, enable/disable, blink, removal, per-track controls, Dear ImGui status, neon 3D presentation, deterministic teardown, and screenshot capture are runtime-verified
-- [x] `113_InputLogger` — dual viewports, all input-event subscriptions and decoded parameters, C++ identity/parameter/time-threshold event merging, viewport-relative mouse reporting, bounded logging, and Dear ImGui output are runtime-verified; the standalone managed application replaces the optional, unported plugin application wrapper
+- [x] `113_InputLogger` — dual viewports, all input-event subscriptions and decoded parameters, C++ identity/parameter/time-threshold event merging, viewport-relative mouse reporting, bounded logging, and Dear ImGui output are runtime-verified; the standalone managed application replaces the optional, unported executable plugin wrapper
 - [~] `114_AdvancedUI` — reflected RmlUI data model, direct `StringVector` list binding, callback-driven main/load/about views, saved-game mutation, focus restoration, sound event attributes, subtle animated button hover, interactive overlapping load/about views, F9 debugger toggle, HarfBuzz-rasterized text, skybox scene, standalone state host, and Escape navigation are ported and runtime-verified; built-in UI `Text3D` is excluded
   - [x] Hovered UI items use a subtle animated enlargement.
   - [x] The Load Game menu reacts to mouse input.
@@ -684,9 +684,9 @@ Accepted deviations:
 
 - [ ] `PluginInstance.h`
   - [ ] `PluginInstance : Object`
-- [ ] `PluginApplication.h`
-  - [ ] `PluginApplication : Object`
-  - [ ] `MainPluginApplication : PluginApplication`
+- [ ] `Plugin.h`
+  - [ ] `Plugin : Object`
+  - [ ] `ExecutablePlugin : Plugin`
 - [ ] `DynamicLibrary.h`
   - [ ] `DynamicLibrary : Object`
 - [ ] `DynamicLibraryPluginInstance.h`
@@ -764,7 +764,7 @@ Accepted deviations:
   - [x] `CustomBackbufferTexture : Object`
   - [x] `SceneRendererToTexture : CustomBackbufferTexture`
 - [ ] `SceneViewerApplication.h` ⤴ needs `Plugins`
-  - [ ] `SceneViewerApplication : MainPluginApplication`
+  - [ ] `SceneViewerApplication : ExecutablePlugin`
 
 ---
 

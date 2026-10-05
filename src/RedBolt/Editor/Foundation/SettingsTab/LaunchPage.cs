@@ -155,15 +155,15 @@ public class LaunchPage : SettingsPage
             mainPlugin = string.Empty;
 
         var pluginManager = GetSubsystem<PluginManager>();
-        foreach (var plugin in pluginManager.LoadedPlugins)
+        foreach (var pluginName in pluginManager.LoadedPlugins)
         {
-            var pluginApplication = pluginManager.GetPluginApplication(plugin, true);
-            if (pluginApplication?.IsMain != true)
+            var plugin = pluginManager.GetPlugin(pluginName, true);
+            if (plugin?.IsExecutable != true)
                 continue;
 
-            _mainPlugin.Set(plugin);
-            if (ImGui.Selectable(_mainPlugin.ContentBytes, plugin == mainPlugin))
-                mainPlugin = plugin;
+            _mainPlugin.Set(pluginName);
+            if (ImGui.Selectable(_mainPlugin.ContentBytes, pluginName == mainPlugin))
+                mainPlugin = pluginName;
         }
         ImGui.EndCombo();
     }

@@ -6,7 +6,7 @@ namespace RedBolt.Plugins;
 
 using RedBolt.Core;
 
-/// <summary>Wrapper that manages loading and unloading of one plugin application.</summary>
+/// <summary>Wrapper that manages loading and unloading of one plugin.</summary>
 public abstract class PluginInstance : RedObject
 {
     protected PluginInstance(string name, PluginReloadPolicy reloadPolicy, bool autoLoad = false)
@@ -25,7 +25,7 @@ public abstract class PluginInstance : RedObject
 
     public virtual int LoadOrder => 0;
 
-    public PluginApplication? Application { get; protected set; }
+    public Plugin? Plugin { get; protected set; }
 
     public uint Version { get; protected set; }
 
@@ -50,7 +50,7 @@ public abstract class PluginInstance : RedObject
 
 internal sealed class StaticPluginInstance : PluginInstance
 {
-    public StaticPluginInstance(string name, Func<PluginApplication> factory)
+    public StaticPluginInstance(string name, Func<Plugin> factory)
         : base(name, PluginReloadPolicy.ProcessResident)
     {
         _factory = factory;
@@ -58,17 +58,17 @@ internal sealed class StaticPluginInstance : PluginInstance
 
     public override bool Load()
     {
-        Application ??= _factory();
-        Application.PluginName = Name;
+        Plugin ??= _factory();
+        Plugin.PluginName = Name;
         Version = global::System.Math.Max(1u, Version);
         return true;
     }
 
     public override void Unload()
     {
-        Application?.Dispose();
-        Application = null;
+        Plugin?.Dispose();
+        Plugin = null;
     }
 
-    private readonly Func<PluginApplication> _factory;
+    private readonly Func<Plugin> _factory;
 }

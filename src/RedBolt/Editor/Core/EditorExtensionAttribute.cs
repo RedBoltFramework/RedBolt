@@ -30,8 +30,8 @@ public sealed class EditorExtensionAttribute : Attribute
     public string? Name { get; }
 }
 
-/// <summary>Plugin application whose attributed Editor extensions are attached automatically.</summary>
-public abstract class EditorPluginApplication : PluginApplication
+/// <summary>Plugin whose attributed Editor extensions are attached automatically.</summary>
+public abstract class EditorPluginApplication : Plugin
 {
     protected sealed override void Load()
     {

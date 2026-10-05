@@ -391,10 +391,10 @@ public class SceneViewTab : ResourceEditorTab
         return null;
     }
 
-    /// <summary>Setup context for plugin application execution.</summary>
+    /// <summary>Setup context for plugin execution.</summary>
     public void SetupPluginContext()
     {
-        // TODO: port plugin application execution and its Scene context setup.
+        // TODO: port plugin execution and its Scene context setup.
         // SceneViewPage* activePage = GetActivePage();
         // auto engine = GetSubsystem<Engine>();
         // if (activePage)

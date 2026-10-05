@@ -220,7 +220,7 @@ internal sealed class ManagedAssemblyPluginInstance : PluginInstance
     {
         get
         {
-            if (ReloadPolicy != PluginReloadPolicy.Collectible || Application is null)
+            if (ReloadPolicy != PluginReloadPolicy.Collectible || Plugin is null)
                 return false;
             var info = new FileInfo(_descriptor.AssemblyPath);
             return info.Exists && (info.LastWriteTimeUtc != _loadedWriteTimeUtc || info.Length != _loadedLength);
@@ -231,14 +231,14 @@ internal sealed class ManagedAssemblyPluginInstance : PluginInstance
 
     public override bool Load()
     {
-        if (Application is not null)
+        if (Plugin is not null)
             return true;
 
         var candidate = CreateCandidate();
         if (candidate is null)
             return false;
         _backend = candidate.Value.Backend;
-        Application = candidate.Value.Application;
+        Plugin = candidate.Value.Plugin;
         Version = candidate.Value.Version;
         _loadedWriteTimeUtc = candidate.Value.WriteTimeUtc;
         _loadedLength = candidate.Value.Length;
@@ -247,7 +247,7 @@ internal sealed class ManagedAssemblyPluginInstance : PluginInstance
 
     public override bool BeginReload()
     {
-        if (ReloadPolicy != PluginReloadPolicy.Collectible || _backend?.Current is null || Application is null)
+        if (ReloadPolicy != PluginReloadPolicy.Collectible || _backend?.Current is null || Plugin is null)
             return false;
 
         _backend.Current.Unregister();
@@ -257,9 +257,9 @@ internal sealed class ManagedAssemblyPluginInstance : PluginInstance
             _backend.Current.Register(RedBolt.Core.Context.Instance);
             return false;
         }
-        _previous = new Generation(_backend, Application, Version, _loadedWriteTimeUtc, _loadedLength);
+        _previous = new Generation(_backend, Plugin, Version, _loadedWriteTimeUtc, _loadedLength);
         _backend = candidate.Value.Backend;
-        Application = candidate.Value.Application;
+        Plugin = candidate.Value.Plugin;
         Version = candidate.Value.Version;
         _loadedWriteTimeUtc = candidate.Value.WriteTimeUtc;
         _loadedLength = candidate.Value.Length;
@@ -270,7 +270,7 @@ internal sealed class ManagedAssemblyPluginInstance : PluginInstance
     {
         if (_previous is not { } previous)
             return;
-        previous.Application.Dispose();
+        previous.Plugin.Dispose();
         previous.Backend.Dispose();
         _previous = null;
     }
@@ -279,11 +279,11 @@ internal sealed class ManagedAssemblyPluginInstance : PluginInstance
     {
         if (_previous is not { } previous)
             return;
-        Application?.Dispose();
+        Plugin?.Dispose();
         _backend?.Dispose();
         previous.Backend.Current!.Register(RedBolt.Core.Context.Instance);
         _backend = previous.Backend;
-        Application = previous.Application;
+        Plugin = previous.Plugin;
         Version = previous.Version;
         _loadedWriteTimeUtc = previous.WriteTimeUtc;
         _loadedLength = previous.Length;
@@ -343,12 +343,12 @@ internal sealed class ManagedAssemblyPluginInstance : PluginInstance
         try
         {
             generation.Register(RedBolt.Core.Context.Instance);
-            PluginApplication application;
+            Plugin plugin;
             if (_descriptor.IsImplicitModule)
             {
                 if (!string.Equals(generation.Assembly.GetName().Name, Name, StringComparison.Ordinal))
                     throw new InvalidOperationException("Module identity changed between discovery and load.");
-                application = new ManagedModuleApplication();
+                plugin = new ManagedModulePlugin();
             }
             else
             {
@@ -356,19 +356,19 @@ internal sealed class ManagedAssemblyPluginInstance : PluginInstance
                     ?? throw new InvalidOperationException("Plugin metadata disappeared after loading.");
                 if (!string.Equals(metadata.Name, Name, StringComparison.Ordinal))
                     throw new InvalidOperationException("Plugin identity changed between discovery and load.");
-                if (!typeof(PluginApplication).IsAssignableFrom(metadata.ApplicationType)
+                if (!typeof(Plugin).IsAssignableFrom(metadata.ApplicationType)
                     || metadata.ApplicationType.IsAbstract)
                 {
                     throw new InvalidOperationException(
-                        $"Plugin entry point '{metadata.ApplicationType}' is not a concrete PluginApplication.");
+                        $"Plugin entry point '{metadata.ApplicationType}' is not a concrete Plugin.");
                 }
-                application = (PluginApplication?)Activator.CreateInstance(metadata.ApplicationType)
-                    ?? throw new InvalidOperationException("Plugin application could not be constructed.");
+                plugin = (Plugin?)Activator.CreateInstance(metadata.ApplicationType)
+                    ?? throw new InvalidOperationException("Plugin could not be constructed.");
             }
-            application.PluginName = Name;
-            application.PluginDirectory = Path.GetDirectoryName(_descriptor.AssemblyPath)!;
+            plugin.PluginName = Name;
+            plugin.PluginDirectory = Path.GetDirectoryName(_descriptor.AssemblyPath)!;
             var info = new FileInfo(_descriptor.AssemblyPath);
-            return new Generation(backend, application, Version + 1, info.LastWriteTimeUtc, info.Length);
+            return new Generation(backend, plugin, Version + 1, info.LastWriteTimeUtc, info.Length);
         }
         catch (Exception exception)
         {
@@ -380,8 +380,8 @@ internal sealed class ManagedAssemblyPluginInstance : PluginInstance
 
     public override void Unload()
     {
-        Application?.Dispose();
-        Application = null;
+        Plugin?.Dispose();
+        Plugin = null;
         _backend?.Dispose();
         _backend = null;
     }
@@ -398,13 +398,13 @@ internal sealed class ManagedAssemblyPluginInstance : PluginInstance
     private DateTime _loadedWriteTimeUtc;
     private long _loadedLength;
 
-    private sealed class ManagedModuleApplication : PluginApplication
+    private sealed class ManagedModulePlugin : Plugin
     {
     }
 
     private readonly record struct Generation(
         IAssemblyBackend Backend,
-        PluginApplication Application,
+        Plugin Plugin,
         uint Version,
         DateTime WriteTimeUtc,
         long Length);
