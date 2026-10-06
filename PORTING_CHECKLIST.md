@@ -343,13 +343,13 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] `FilteredUint`
   - [x] `ClockSynchronizer`
 - [x] `AbstractConnection.h` — removed on `rk/network`; superseded by transport connections
-- [x] `Transport/NetworkConnection.h`
+- [x] `NetworkConnection.h`
   - [x] `NetworkConnection : Object`
-- [x] `Transport/NetworkServer.h`
+- [x] `NetworkServer.h`
   - [x] `NetworkServer : Object`
-- [x] `Transport/DataChannel/DataChannelConnection.h`
+- [x] `DataChannel/DataChannelConnection.h`
   - [x] `DataChannelConnection : NetworkConnection`
-- [x] `Transport/DataChannel/DataChannelServer.h`
+- [x] `DataChannel/DataChannelServer.h`
   - [x] `DataChannelServer : NetworkServer`
 - [x] `Connection.h` — removed on `rk/network`; superseded by `NetworkConnection`
 - [x] `HttpRequest.h`
