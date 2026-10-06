@@ -358,8 +358,9 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] `LANDiscoveryManager : Object`
 - [x] `NetworkMessageLogger.h`
   - [x] `NetworkMessageLogger`
-- [x] `NetworkLoadableScene.h`
-  - [x] `NetworkLoadableScene : Object`
+- [x] `SceneLoader.h`
+  - [x] `ServerSceneLoader : Object`
+  - [x] `ClientSceneLoader : Object`
 - [x] `ReplicatedPeer.h`
   - [x] `ReplicatedPeer`
 - [x] `Network.h`
