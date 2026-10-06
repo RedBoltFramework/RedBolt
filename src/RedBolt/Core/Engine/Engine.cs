@@ -24,6 +24,9 @@ public class Engine : RedObject
 {
     private static readonly string ExecutableDirectory = AppContext.BaseDirectory;
 
+    /// <summary>Longest time in milliseconds that subscribers of <see cref="CoreEvents.ExitDelayQueryEvent"/> may hold an exit.</summary>
+    private const uint ExitDelayLimitMs = 10000;
+
     private readonly record struct ResourceRootEntry(string FullName, string ShortName);
 
     private readonly ConfigFile _configFile = new();
@@ -49,6 +52,7 @@ public class Engine : RedObject
     private bool _exiting;
     private bool _headless;
     private readonly Dictionary<string, object?> _customParameters = new(StringComparer.Ordinal);
+    private readonly Timer _exitDelayTimer = new();
     private bool _screenshotCapturedForExit;
     private int _screenshotIndex;
     private int _screenshotFrameDelay;
@@ -913,7 +917,10 @@ public class Engine : RedObject
     private void HandleExitRequested()
     {
         if (AutoExit)
+        {
             _exitRequired = true;
+            _exitDelayTimer.Reset();
+        }
     }
 
     private void HandleEndFrame()
@@ -932,7 +939,30 @@ public class Engine : RedObject
         }
 
         if (_exitRequired && (IsHeadless || string.IsNullOrWhiteSpace(Parameters.ScreenshotOnExit) || _screenshotCapturedForExit))
+        {
+            if (IsExitDelayed())
+                return;
+
             DoExit();
+        }
+    }
+
+    /// <summary>
+    /// Ask subscribers whether the pending exit has to wait, for example for a safe teardown of network connections.
+    /// The wait ends <see cref="ExitDelayLimitMs"/> after the exit request.
+    /// </summary>
+    private bool IsExitDelayed()
+    {
+        var eventData = new CoreEvents.ExitDelayQueryEvent();
+        SendEvent(ref eventData);
+        if (!eventData.Delay)
+            return false;
+
+        if (_exitDelayTimer.GetMSec(false) < ExitDelayLimitMs)
+            return true;
+
+        Log.GetLogger().LogError("Closing application with active connections.");
+        return false;
     }
 
     private string GetScreenshotPath(string screenshotPath)
@@ -1015,7 +1045,10 @@ public class Engine : RedObject
             if (_timeOut <= 0)
             {
                 if (!IsHeadless && !string.IsNullOrWhiteSpace(Parameters.ScreenshotOnExit))
+                {
                     _exitRequired = true;
+                    _exitDelayTimer.Reset();
+                }
                 else
                     Exit();
             }

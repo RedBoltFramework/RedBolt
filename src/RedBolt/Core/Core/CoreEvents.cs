@@ -54,4 +54,14 @@ public static class CoreEvents
     public struct EndFramePrivateEvent
     {
     }
+
+    /// <summary>
+    /// Query sent at the end of a frame while an exit is pending and nothing else holds it.
+    /// A subscriber sets <see cref="Delay"/> to hold the exit, for example until a safe teardown has finished.
+    /// The engine exits anyway when the delay lasts too long after the exit request.
+    /// </summary>
+    public struct ExitDelayQueryEvent
+    {
+        public bool Delay;
+    }
 }
