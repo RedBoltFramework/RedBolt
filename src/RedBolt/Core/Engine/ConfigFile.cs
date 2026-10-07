@@ -395,10 +395,9 @@ public sealed class ConfigFile : RedObject
         {
             foreach (var (name, node) in rootObject)
             {
-                if (node is not JsonObject)
-                    continue;
-
-                using var value = JSONValue.FromJsonNode(node).GetVariant();
+                using var json = JSONValue.FromJsonNode(node);
+                // A plain value takes the type of the definition. An unknown variable gets type None, and ApplyOverride warns about it.
+                using var value = json.IsObject ? json.GetVariant() : json.GetVariantValue(GetVariableDefinition(name)?.Type ?? VariantType.None);
                 ApplyOverride(name, value);
             }
         }
@@ -421,6 +420,13 @@ public sealed class ConfigFile : RedObject
         }
 
         using var overrides = GetChangedVariables(flavor);
+        // LoadOverrides ignores a variable that is unknown or not overridable and warns about it, so the file does not hold one
+        foreach (var name in overrides.Keys)
+        {
+            if (GetVariableDefinition(name)?.IsOverridable != true)
+                overrides.Remove(name);
+        }
+
         using var jsonFile = new JSONFile();
         jsonFile.Root.SetStringVariantMap(overrides);
         if (!jsonFile.Save(file))
