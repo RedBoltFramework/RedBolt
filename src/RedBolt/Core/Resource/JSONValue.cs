@@ -516,6 +516,10 @@ public class JSONValue : IEquatable<JSONValue>, ICloneable, IDisposable
             _ => default
         };
 
+        // An Int64 number is read above. An Int64 string is the form that is saved, and it needs FromString.
+        if (type == VariantType.Int64 && IsNumber)
+            return result;
+
         if (type is not (VariantType.Bool or VariantType.Int or VariantType.Float or VariantType.Double or VariantType.String or VariantType.VariantVector or VariantType.VariantMap or VariantType.StringVariantMap or VariantType.ResourceRef or VariantType.ResourceRefList or VariantType.StringVector or VariantType.Custom))
             result.FromString(type, GetString());
 
