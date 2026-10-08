@@ -33,11 +33,9 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <RedBoltBuildRoot Condition="'$(RedBoltBuildRoot)' == ''">$(RedBoltExpectedBuildRoot)</RedBoltBuildRoot>
     <RedBoltBuildConfigPath Condition="'$(RedBoltBuildConfigPath)' == ''">$(RedBoltBuildRoot)/BuildConfig.props</RedBoltBuildConfigPath>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
-    <SharpCppBuildRoot Condition="'$(SharpCppBuildRoot)' == ''">$(RedBoltBuildRoot)</SharpCppBuildRoot>
-    <SharpCppOutputDir Condition="'$(SharpCppOutputDir)' == ''">$(RedBoltBuildRoot)/bin/$(Configuration)/host/extern</SharpCppOutputDir>
-    <SharpCppIntermediateRoot Condition="'$(SharpCppIntermediateRoot)' == ''">$(RedBoltBuildRoot)/obj/managed/$(Configuration)/tools</SharpCppIntermediateRoot>
     <RedBoltSharpCppRestoreProps>$(MSBuildThisFileDirectory)eng/RedBolt.ModuleBuild/SharpCpp.Restore.props</RedBoltSharpCppRestoreProps>
     <AddSyntheticProjectReferencesForSolutionDependencies>false</AddSyntheticProjectReferencesForSolutionDependencies>
   </PropertyGroup>
+  <Import Project="$(MSBuildThisFileDirectory)eng/RedBolt.ModuleBuild/SharpCpp.Host.props" />
   <Import Project="$(MSBuildThisFileDirectory)RedBolt.BuildConfig.props" />
 </Project>

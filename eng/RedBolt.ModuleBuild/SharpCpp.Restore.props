@@ -11,5 +11,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
           Condition="Exists('$(MSBuildToolsPath)/Sdks/Microsoft.NET.Sdk/Sdk/UseArtifactsOutputPath.props')" />
   <PropertyGroup Condition="'$(SharpCppBuildPropsImported)' == 'true'">
     <MSBuildProjectExtensionsPath>$(SharpCppBuildRoot)/obj/restore/$(Configuration)/$(MSBuildProjectName)/</MSBuildProjectExtensionsPath>
+    <!-- The generator tools load the SharpCpp libraries from their own directory. -->
+    <SharpCppGeneratorDependencyStageDir>$(SharpCppBuildRoot)/bin/$(Configuration)/host/tools</SharpCppGeneratorDependencyStageDir>
   </PropertyGroup>
 </Project>

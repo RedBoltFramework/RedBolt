@@ -1,0 +1,17 @@
+<!--
+Copyright (c) 2026 RedBolt and contributors.
+This work is licensed under the terms of the MIT license.
+For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
+-->
+
+<Project>
+  <!-- Places the SharpCpp build in RedBoltBuildRoot, where RedBolt projects look for it. A solution
+       build passes these values to SharpCpp as global properties. SharpCpp imports this file for a
+       build that starts from a single project, for example in an IDE. -->
+  <PropertyGroup Condition="'$(RedBoltBuildRoot)' != ''">
+    <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
+    <SharpCppBuildRoot Condition="'$(SharpCppBuildRoot)' == ''">$(RedBoltBuildRoot)</SharpCppBuildRoot>
+    <SharpCppOutputDir Condition="'$(SharpCppOutputDir)' == ''">$(RedBoltBuildRoot)/bin/$(Configuration)/host/extern</SharpCppOutputDir>
+    <SharpCppIntermediateRoot Condition="'$(SharpCppIntermediateRoot)' == ''">$(RedBoltBuildRoot)/obj/managed/$(Configuration)/tools</SharpCppIntermediateRoot>
+  </PropertyGroup>
+</Project>
