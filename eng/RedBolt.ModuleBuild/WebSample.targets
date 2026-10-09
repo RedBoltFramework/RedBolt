@@ -107,5 +107,35 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
       <_WasmPInvokeModules Include="RedBolt.Native.Sdl;RedBolt.Native.Diligent;RedBolt.Native.Stb;RedBolt.Native.Lz4;RedBolt.Native.HarfBuzz;RedBolt.Native.WebP;RedBolt.Native.Glslang;RedBolt.Native.SpirVCross;RedBolt.Native.SpirVTools;RedBolt.Native.ShaderCompiler;$(RedBoltExternalWebPInvokeModules)" />
     </ItemGroup>
   </Target>
+  <!--
+    The SDK target _GenerateManagedToNative has no Inputs/Outputs. It scans all assemblies in each build and
+    writes a table only when its content changes, so the task never gets up to date after one change. This
+    gate runs the SDK target only when an assembly or a build file is newer than the stamp, or a table is
+    missing. It relies on the private SDK names _WasmBuildNativeCoreDependsOn, _WasmAssembliesInternal,
+    _WasmIntermediateOutputPath and the table paths. The SDK appends to _WasmBuildNativeCoreDependsOn after
+    this file is imported, so the swap happens in a target that runs before the SDK expands that property for _WasmBuildNativeCore.
+  -->
+  <Target Name="RedBoltUseManagedToNativeGate" AfterTargets="PrepareInputsForWasmBuild">
+    <PropertyGroup>
+      <_WasmBuildNativeCoreDependsOn>$([MSBuild]::Unescape($(_WasmBuildNativeCoreDependsOn.Replace('_GenerateManagedToNative;', 'RedBoltGenerateManagedToNative;'))))</_WasmBuildNativeCoreDependsOn>
+    </PropertyGroup>
+  </Target>
+  <!-- Runs in each build: keeps the generated files from IncrementalClean and forces a scan when a table is missing. -->
+  <Target Name="RedBoltKeepManagedToNativeFiles">
+    <PropertyGroup>
+      <RedBoltManagedToNativeStamp>$(_WasmIntermediateOutputPath)redbolt-m2n-$(BundledNETCoreAppPackageVersion).stamp</RedBoltManagedToNativeStamp>
+    </PropertyGroup>
+    <Delete Files="$(RedBoltManagedToNativeStamp)"
+            Condition="!Exists('$(_WasmICallTablePath)') or !Exists('$(_WasmPInvokeTablePath)') or !Exists('$(_WasmInterpToNativeTablePath)') or !Exists('$(_WasmM2NCachePath)')" />
+    <ItemGroup>
+      <FileWrites Include="$(RedBoltManagedToNativeStamp);$(_WasmRuntimeICallTablePath);$(_WasmICallTablePath);$(_WasmPInvokeTablePath);$(_WasmInterpToNativeTablePath);$(_WasmM2NCachePath)" />
+    </ItemGroup>
+  </Target>
+  <Target Name="RedBoltGenerateManagedToNative" DependsOnTargets="RedBoltKeepManagedToNativeFiles"
+          Inputs="@(_WasmAssembliesInternal);$(MSBuildAllProjects)"
+          Outputs="$(RedBoltManagedToNativeStamp)">
+    <CallTarget Targets="_GenerateManagedToNative" />
+    <Touch Files="$(RedBoltManagedToNativeStamp)" AlwaysCreate="true" />
+  </Target>
   <Import Project="$(RedBoltRoot)/src/RedBolt/Native/NativeBuild.targets" />
 </Project>
