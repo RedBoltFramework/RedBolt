@@ -7,7 +7,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 <Project>
   <!--
     Build configuration defaults.
-    Sets tuning knobs that do not depend on the persisted selection, then imports the persisted
+    Sets tuning knobs that do not depend on the persisted selection, then reads the persisted
     BuildConfig.props (if present) before computing the per-RID and module flags.
   -->
   <PropertyGroup>
@@ -18,7 +18,12 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <RestoreUseStaticGraphEvaluation Condition="'$(RedBoltFull)' == 'true' and '$(RestoreUseStaticGraphEvaluation)' == ''">false</RestoreUseStaticGraphEvaluation>
   </PropertyGroup>
 
-  <Import Project="$(RedBoltBuildConfigPath)" Condition="Exists('$(RedBoltBuildConfigPath)')" />
+  <!-- Reads the saved selection as text. An import makes the file an input of each compile step, so a
+       selection change compiles all projects again. -->
+  <PropertyGroup Condition="Exists('$(RedBoltBuildConfigPath)')">
+    <_RedBoltSavedEnable>$([System.Text.RegularExpressions.Regex]::Match(`$([System.IO.File]::ReadAllText('$(RedBoltBuildConfigPath)'))`, `(?&lt;=&lt;_RedBoltSavedEnable&gt;)[^&lt;]*`).Value.Trim())</_RedBoltSavedEnable>
+    <RedBoltEnable Condition="'$(RedBoltEnable)' == ''">$(_RedBoltSavedEnable)</RedBoltEnable>
+  </PropertyGroup>
 
   <PropertyGroup>
     <!--
