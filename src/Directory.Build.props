@@ -139,8 +139,11 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <RedBoltNativePdbOutputRoot>$(RedBoltExternOutputDir)/pdb</RedBoltNativePdbOutputRoot>
     <RedBoltManagedOutputTargets>$(RedBoltRoot)/cmake/RedBoltManagedOutput.targets</RedBoltManagedOutputTargets>
     <!-- Restore platform collapses android-* variants to "android" (NuGet restore only needs the
-         platform family) and tool projects to "tools". -->
+         platform family) and tool projects to "tools". A platform library with the Android target
+         framework has a different directory, so a selection switch does not write the restore files
+         again and start a compile. -->
     <RedBoltRestorePlatform Condition="'$(RedBoltIsPlatformLibrary)' == 'true'">managed</RedBoltRestorePlatform>
+    <RedBoltRestorePlatform Condition="'$(RedBoltIsPlatformLibrary)' == 'true' and '$(TargetFrameworks)' != ''">managed-android</RedBoltRestorePlatform>
     <RedBoltRestorePlatform Condition="'$(RedBoltIsPlatformLibrary)' != 'true'">$(RedBoltPlatform)</RedBoltRestorePlatform>
     <RedBoltRestorePlatform Condition="'$(RedBoltIsPlatformLibrary)' != 'true' and $([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">android</RedBoltRestorePlatform>
     <RedBoltRestorePlatform Condition="'$(MSBuildProjectName)' == 'RedBolt.Generator.Dependencies' or '$(MSBuildProjectName)' == 'RedBolt.Generator.Reflection'">tools</RedBoltRestorePlatform>
