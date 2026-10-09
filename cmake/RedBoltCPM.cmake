@@ -63,6 +63,8 @@ function(redbolt_cpm_find_checkout package_name repository output)
   endif()
 
   file(GLOB_RECURSE git_markers LIST_DIRECTORIES true "${CPM_SOURCE_CACHE}/*/.git")
+  # LIST_DIRECTORIES lists every directory of the walk, also those inside a .git directory.
+  list(FILTER git_markers INCLUDE REGEX "/\\.git$")
   foreach(git_marker IN LISTS git_markers)
     get_filename_component(checkout "${git_marker}" DIRECTORY)
     execute_process(
