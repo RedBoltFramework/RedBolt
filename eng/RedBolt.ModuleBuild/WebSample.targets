@@ -74,12 +74,18 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <Content Include="$(RedBoltWebExtensionScript)" Link="wwwroot/extension.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <RedBoltWebResourcePackage Include="RedBolt.CoreData" SourceDirectory="$(RedBoltRoot)/bin/CoreData" />
     <RedBoltWebResourcePackage Include="RedBolt.SampleData" SourceDirectory="$(RedBoltRoot)/bin/SampleData" />
-    <RedBoltWebResourceFile Include="@(RedBoltWebResourcePackage->'%(SourceDirectory)/**/*')" />
     <Content Include="@(RedBoltWebResourcePackage->'$(RedBoltWebPackageDirectory)/%(Identity).pak')" Link="wwwroot/resources/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="$(RedBoltWebResourcesManifest)" Link="wwwroot/resources.manifest.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
+  <!-- Lists the files of each module data folder. MSBuild does not expand a wildcard from an item transform. -->
+  <Target Name="RedBoltCollectWebResourceFiles">
+    <ItemGroup>
+      <RedBoltWebResourceFile Include="%(RedBoltWebResourcePackage.SourceDirectory)/**/*" />
+    </ItemGroup>
+  </Target>
   <!-- Builds one .pak for each module data folder before static web assets are resolved. -->
   <Target Name="RedBoltCreateWebPackages" BeforeTargets="ResolveProjectStaticWebAssets;GetCopyToOutputDirectoryItems"
+          DependsOnTargets="RedBoltCollectWebResourceFiles"
           Inputs="@(RedBoltWebResourceFile);$(RedBoltPackageToolAssembly);$(MSBuildProjectFullPath)"
           Outputs="@(RedBoltWebResourcePackage->'$(RedBoltWebPackageDirectory)/%(Identity).pak');$(RedBoltWebResourcesManifest)">
     <RemoveDir Directories="$(RedBoltWebPackageDirectory)" />
