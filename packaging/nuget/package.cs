@@ -186,17 +186,14 @@ internal sealed class Packager
 
     private static string GetSourcePath([CallerFilePath] string path = "") => path;
 
-    // Same rule as the MSBuild props: an explicit REDBOLT_BUILD_ROOT, the monorepo root's build/ when
-    // RedBolt.slnx sits beside this repository, otherwise this repository's build/.
+    // Same default as the MSBuild props: an explicit REDBOLT_BUILD_ROOT, otherwise the build/ beside this
+    // repository. RedBolt.Workspace.props is not read; set REDBOLT_BUILD_ROOT to the same directory.
     private static string ResolveBuildRoot(string repositoryRoot)
     {
         var explicitRoot = Environment.GetEnvironmentVariable("REDBOLT_BUILD_ROOT");
         if (!string.IsNullOrEmpty(explicitRoot))
             return Path.GetFullPath(explicitRoot);
-        var parent = Path.GetFullPath(Path.Combine(repositoryRoot, ".."));
-        return File.Exists(Path.Combine(parent, "RedBolt.slnx"))
-            ? Path.Combine(parent, "build")
-            : Path.Combine(repositoryRoot, "build");
+        return Path.GetFullPath(Path.Combine(repositoryRoot, "..", "build"));
     }
 
     // Same rule as the MSBuild props: an explicit RedBoltSharpCppRoot, the monorepo's extern/SharpCpp when

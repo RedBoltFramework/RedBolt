@@ -529,17 +529,14 @@ public static class ExternalModulePackager
 
         private string BuildRootProperty => $"-p:RedBoltBuildRoot={_buildRoot}";
 
-        // Same rule as the MSBuild props: an explicit REDBOLT_BUILD_ROOT, the monorepo root's build/ when
-        // RedBolt.slnx sits beside the repository, otherwise the repository's own build/.
+        // Same default as the MSBuild props: an explicit REDBOLT_BUILD_ROOT, otherwise the build/ beside the
+        // repository. RedBolt.Workspace.props is not read; set REDBOLT_BUILD_ROOT to the same directory.
         private static string ResolveBuildRoot(string repositoryRoot)
         {
             var explicitRoot = Environment.GetEnvironmentVariable("REDBOLT_BUILD_ROOT");
             if (!string.IsNullOrEmpty(explicitRoot))
                 return Path.GetFullPath(explicitRoot);
-            var parent = Path.GetFullPath(Path.Combine(repositoryRoot, ".."));
-            return File.Exists(Path.Combine(parent, "RedBolt.slnx"))
-                ? Path.Combine(parent, "build")
-                : Path.Combine(repositoryRoot, "build");
+            return Path.GetFullPath(Path.Combine(repositoryRoot, "..", "build"));
         }
 
         // Package outputs are namespaced per repository below the build root, because the monorepo shares one

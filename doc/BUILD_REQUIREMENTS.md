@@ -114,10 +114,11 @@ the old four-property format are ignored: the selection falls back to `all`
 until a solution build is given `RedBoltEnable` explicitly.
 
 The build root is selected statically by `Directory.Build.props` and is not
-recorded by builds. A global `-p:RedBoltBuildRoot=<dir>` wins. Otherwise, when
-the repository sits beside the monorepo's `RedBolt.slnx`, every entry point
-(root solution, module solution, direct `.csproj`) builds into the monorepo
-`build/`; a repository checked out on its own builds into its own `build/`.
+recorded by builds. A global `-p:RedBoltBuildRoot=<dir>`, or the property in a
+`RedBolt.Workspace.props` file beside the engine directory, wins. Otherwise
+`eng/RedBolt.Layout.props` selects the `build/` directory beside the engine
+directory for every entry point (root solution, module solution, direct
+`.csproj`). No repository uses its own `build/`.
 The MSBuild task assembly is built under
 `<build root>/bin/tools/module-build-tasks/<configuration>/net10.0/`, and VSTest
 results go to `<build root>/TestResults`.
