@@ -14,18 +14,9 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <RedBoltRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../..'))</RedBoltRoot>
   </PropertyGroup>
 
-  <!-- Inside the monorepo (marked by RedBolt.slnx beside this repository) the root Directory.Build.props
-       selects the build root. -->
-  <Import Project="$(RedBoltRoot)/../Directory.Build.props"
-          Condition="'$(RedBoltMonorepoRoot)' == ''
-                     and Exists('$(RedBoltRoot)/../Directory.Build.props')
-                     and Exists('$(RedBoltRoot)/../RedBolt.slnx')" />
+  <Import Project="$(RedBoltRoot)/eng/RedBolt.Layout.props" />
 
   <PropertyGroup>
-    <!-- A global RedBoltBuildRoot wins, then the monorepo root's build/, then this repository's build/. -->
-    <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == '' and '$(RedBoltBuildRoot)' != ''">$([System.IO.Path]::GetFullPath('$(RedBoltBuildRoot)'))</RedBoltExpectedBuildRoot>
-    <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == ''">$([System.IO.Path]::GetFullPath('$(RedBoltRoot)/build'))</RedBoltExpectedBuildRoot>
-    <RedBoltBuildRoot Condition="'$(RedBoltBuildRoot)' == ''">$(RedBoltExpectedBuildRoot)</RedBoltBuildRoot>
     <BaseOutputPath>$(RedBoltBuildRoot)/bin/tools/module-build-tasks/</BaseOutputPath>
     <BaseIntermediateOutputPath>$(RedBoltBuildRoot)/obj/tools/module-build-tasks/</BaseIntermediateOutputPath>
     <MSBuildProjectExtensionsPath>$(BaseIntermediateOutputPath)restore/$(Configuration)/</MSBuildProjectExtensionsPath>

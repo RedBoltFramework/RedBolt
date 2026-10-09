@@ -25,7 +25,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   <Target Name="RedBoltBuildModuleBuildTasks"
           Inputs="@(RedBoltModuleBuildTasksInput)"
           Outputs="$(RedBoltModuleBuildTasksAssembly)">
-    <MSBuild Projects="$(RedBoltModuleBuildTasksProject)" Targets="Restore;Build" Properties="Configuration=$(Configuration);RedBoltBuildRoot=$(RedBoltBuildRoot)"
+    <MSBuild Projects="$(RedBoltModuleBuildTasksProject)" Targets="Restore;Build" Properties="Configuration=$(Configuration)"
              RemoveProperties="$(RedBoltHostProjectGlobalPropertiesToRemove)" />
   </Target>
 
@@ -103,40 +103,4 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
           AfterTargets="Build"
           DependsOnTargets="RedBoltStageExternalNativeResources"
       Condition="'$(RedBoltExternalDesktopResourceRoot)' != '' and '$(RedBoltExternalDesktopResourceName)' != '' and ('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and '$(RedBoltProjectBuildEnabled)' == 'true'" />
-
-  <!--
-    Standalone layout (no monorepo root): core projects referenced from a module project evaluate on their own and
-    would default to the core's build/. Pass this project's build root down every ProjectReference that leaves
-    this repository, in the resolved reference set, and in the restore graph, so the whole graph shares one
-    build root. References inside this repository already share the root; extra global properties would build
-    them a second time. The monorepo needs none of this: its root Directory.Build.props selects the same root
-    everywhere. A workspace (RedBolt.Workspace.props) needs none of it either: every repository imports the
-    same file, and the extra global properties would build a project a second time when a solution also
-    lists it.
-  -->
-  <PropertyGroup Condition="'$(RedBoltMonorepoRoot)' == '' and '$(RedBoltWorkspaceRoot)' == ''">
-    <_RedBoltStandaloneRepositoryPrefix>$([MSBuild]::EnsureTrailingSlash('$([System.IO.Path]::GetFullPath('$(RedBoltExternalModuleRoot)'))'))</_RedBoltStandaloneRepositoryPrefix>
-  </PropertyGroup>
-  <ItemGroup Condition="'$(RedBoltMonorepoRoot)' == '' and '$(RedBoltWorkspaceRoot)' == ''">
-    <ProjectReference Update="@(ProjectReference)">
-      <AdditionalProperties Condition="!$([System.String]::Copy('%(FullPath)').StartsWith('$(_RedBoltStandaloneRepositoryPrefix)'))">%(ProjectReference.AdditionalProperties);RedBoltBuildRoot=$(RedBoltBuildRoot);RedBoltExpectedBuildRoot=$(RedBoltExpectedBuildRoot)</AdditionalProperties>
-    </ProjectReference>
-  </ItemGroup>
-  <Target Name="RedBoltConfigureStandaloneProjectReferences"
-          AfterTargets="_SplitProjectReferencesByFileExistence"
-          BeforeTargets="_GetProjectReferenceTargetFrameworkProperties;ResolveProjectReferences"
-          Condition="'$(RedBoltMonorepoRoot)' == '' and '$(RedBoltWorkspaceRoot)' == ''">
-    <ItemGroup>
-      <_MSBuildProjectReferenceExistent Update="@(_MSBuildProjectReferenceExistent)">
-        <SetConfiguration Condition="!$([System.String]::Copy('%(FullPath)').StartsWith('$(_RedBoltStandaloneRepositoryPrefix)'))">%(_MSBuildProjectReferenceExistent.SetConfiguration);RedBoltBuildRoot=$(RedBoltBuildRoot);RedBoltExpectedBuildRoot=$(RedBoltExpectedBuildRoot)</SetConfiguration>
-      </_MSBuildProjectReferenceExistent>
-    </ItemGroup>
-  </Target>
-  <Target Name="RedBoltConfigureStandaloneRestoreGraph"
-          BeforeTargets="_FilterRestoreGraphProjectInputItems;_GenerateRestoreProjectPathWalk;_GenerateRestoreProjectPathItemsPerFramework;_GenerateProjectRestoreGraphPerFramework"
-          Condition="'$(RedBoltMonorepoRoot)' == '' and '$(RedBoltWorkspaceRoot)' == ''">
-    <PropertyGroup>
-      <_GenerateRestoreGraphProjectEntryInputProperties>$(_GenerateRestoreGraphProjectEntryInputProperties);RedBoltBuildRoot=$(RedBoltBuildRoot);RedBoltExpectedBuildRoot=$(RedBoltExpectedBuildRoot)</_GenerateRestoreGraphProjectEntryInputProperties>
-    </PropertyGroup>
-  </Target>
 </Project>

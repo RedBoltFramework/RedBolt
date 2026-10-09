@@ -13,26 +13,19 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     dotnet build / dotnet pack.
   -->
 
-  <!-- A Directory.Build.props beside the project stops MSBuild's walk-up, so import the monorepo root
-       (marked by RedBolt.slnx) explicitly. RedBoltMonorepoRoot keeps it from being imported twice. -->
-  <Import Project="$(MSBuildProjectDirectory)/../../../Directory.Build.props"
-          Condition="'$(RedBoltMonorepoRoot)' == ''
-                     and Exists('$(MSBuildProjectDirectory)/../../../Directory.Build.props')
-                     and Exists('$(MSBuildProjectDirectory)/../../../RedBolt.slnx')" />
+  <PropertyGroup>
+    <RedBoltRoot Condition="'$(RedBoltRoot)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../..'))</RedBoltRoot>
+  </PropertyGroup>
+  <Import Project="$(RedBoltRoot)/eng/RedBolt.Layout.props" />
 
   <!-- Only the package project: the package.cs script beside it is a project of its own and keeps the
        SDK's per-file output paths. -->
   <PropertyGroup Condition="'$(MSBuildProjectName)' == 'RedBolt.Package'">
-    <!-- The package project's own bin/ and obj/ live under the active build root: a global RedBoltBuildRoot
-         wins, then the monorepo root's build/ (RedBoltExpectedBuildRoot from the root Directory.Build.props),
-         then this repository's build/. -->
-    <RedBoltPackageBuildRoot>$(RedBoltBuildRoot)</RedBoltPackageBuildRoot>
-    <RedBoltPackageBuildRoot Condition="'$(RedBoltPackageBuildRoot)' == ''">$(RedBoltExpectedBuildRoot)</RedBoltPackageBuildRoot>
-    <RedBoltPackageBuildRoot Condition="'$(RedBoltPackageBuildRoot)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../../build'))</RedBoltPackageBuildRoot>
+    <!-- The package project's own bin/ and obj/ live under the active build root. -->
     <RedBoltPackageWorkName>$(RedBoltPackageId)</RedBoltPackageWorkName>
     <RedBoltPackageWorkName Condition="'$(RedBoltPackageWorkName)' == ''">$(MSBuildProjectName)</RedBoltPackageWorkName>
-    <BaseOutputPath>$(RedBoltPackageBuildRoot)/bin/package/nuget/$(RedBoltPackageWorkName)/</BaseOutputPath>
-    <BaseIntermediateOutputPath>$(RedBoltPackageBuildRoot)/obj/package/nuget/$(RedBoltPackageWorkName)/</BaseIntermediateOutputPath>
+    <BaseOutputPath>$(RedBoltBuildRoot)/bin/package/nuget/$(RedBoltPackageWorkName)/</BaseOutputPath>
+    <BaseIntermediateOutputPath>$(RedBoltBuildRoot)/obj/package/nuget/$(RedBoltPackageWorkName)/</BaseIntermediateOutputPath>
     <MSBuildProjectExtensionsPath>$(BaseIntermediateOutputPath)</MSBuildProjectExtensionsPath>
     <!-- The project only packs staged files. Its package references exist to become nuspec dependencies,
          so their build assets (such as the runtime identifier check in RedBolt.Core.targets) stay out. -->

@@ -5,20 +5,5 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 -->
 
 <Project>
-  <!-- Optional workspace file beside the module; a global property still wins. RedBoltWorkspaceRoot
-       reports it so it is not imported twice. -->
-  <Import Project="$(RedBoltExternalModuleRoot)/../RedBolt.Workspace.props"
-          Condition="'$(RedBoltWorkspaceRoot)' == '' and Exists('$(RedBoltExternalModuleRoot)/../RedBolt.Workspace.props')" />
-  <!-- A module solution builds into the module's build/, the workspace file's build/, or the monorepo
-       root's build/ when the module sits beside the monorepo's RedBolt.slnx (the same selection as the
-       project-level props). -->
-  <PropertyGroup>
-    <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == '' and '$(RedBoltBuildRoot)' != ''">$([System.IO.Path]::GetFullPath('$(RedBoltBuildRoot)'))</RedBoltExpectedBuildRoot>
-    <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == ''">$([System.IO.Path]::GetFullPath('$(RedBoltExternalModuleRoot)/build'))</RedBoltExpectedBuildRoot>
-  </PropertyGroup>
-  <Import Project="$(RedBoltExternalModuleRoot)/../Directory.Build.props"
-          Condition="'$(RedBoltMonorepoRoot)' == ''
-                     and Exists('$(RedBoltExternalModuleRoot)/../Directory.Build.props')
-                     and Exists('$(RedBoltExternalModuleRoot)/../RedBolt.slnx')" />
   <Import Project="$(RedBoltRoot)/Directory.Solution.props" />
 </Project>
