@@ -22,7 +22,6 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   <Import Project="$(RedBoltRoot)/eng/RedBolt.SharpCppRoot.props" />
 
   <PropertyGroup>
-    <RedBoltSharpCppBuildRoot Condition="'$(RedBoltSharpCppBuildRoot)' == ''">$(RedBoltBuildRoot)</RedBoltSharpCppBuildRoot>
     <!-- Android outer-build properties and the marker of the sample host's arm64 pass are global and
          therefore form part of a referenced project's identity. References discard them so the passes
          share one build instance of each referenced project per platform, and one of each host tool.
@@ -86,7 +85,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <!-- Keep each native CMake cache and generated tree within its configuration. -->
     <RedBoltBaseNativeBuildDir Condition="'$(RedBoltPlatform)' != 'tools'">$(RedBoltBuildRoot)/native/redbolt/$(RedBoltPlatform)/$(Configuration)</RedBoltBaseNativeBuildDir>
     <RedBoltNativeBuildDir Condition="'$(RedBoltPlatform)' != 'tools'">$(RedBoltBaseNativeBuildDir)</RedBoltNativeBuildDir>
-    <RedBoltSharpCppNativeBuildDir Condition="'$(RedBoltPlatform)' != 'tools'">$(RedBoltSharpCppBuildRoot)/native/sharpcpp/$(RedBoltPlatform)/$(Configuration)</RedBoltSharpCppNativeBuildDir>
+    <RedBoltSharpCppNativeBuildDir Condition="'$(RedBoltPlatform)' != 'tools'">$(RedBoltBuildRoot)/native/sharpcpp/$(RedBoltPlatform)/$(Configuration)</RedBoltSharpCppNativeBuildDir>
     <!-- A native build is configured when its CMake cache is missing; configured once and reused by
          subsequent incremental builds. -->
     <RedBoltSharpCppConfigureNative Condition="'$(RedBoltSharpCppNativeBuildDir)' != '' and !Exists('$(RedBoltSharpCppNativeBuildDir)/CMakeCache.txt')">true</RedBoltSharpCppConfigureNative>
@@ -113,11 +112,11 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <RedBoltHostExternOutputDir>$(RedBoltHostOutputRoot)/extern</RedBoltHostExternOutputDir>
     <RedBoltHostToolsOutputDir>$(RedBoltHostOutputRoot)/tools</RedBoltHostToolsOutputDir>
     <RedBoltIntermediateRoot>$(RedBoltBuildRoot)/obj/managed/$(Configuration)/$(RedBoltPlatform)</RedBoltIntermediateRoot>
-    <RedBoltSharpCppManagedOutputRoot>$(RedBoltSharpCppBuildRoot)/bin/$(Configuration)/host/extern</RedBoltSharpCppManagedOutputRoot>
-    <RedBoltSharpCppNativeOutputRoot>$(RedBoltSharpCppBuildRoot)/bin/$(Configuration)/$(RedBoltPlatform)/extern/runtimes/$(RedBoltPlatform)/native</RedBoltSharpCppNativeOutputRoot>
+    <RedBoltSharpCppManagedOutputRoot>$(RedBoltBuildRoot)/bin/$(Configuration)/host/extern</RedBoltSharpCppManagedOutputRoot>
+    <RedBoltSharpCppNativeOutputRoot>$(RedBoltBuildRoot)/bin/$(Configuration)/$(RedBoltPlatform)/extern/runtimes/$(RedBoltPlatform)/native</RedBoltSharpCppNativeOutputRoot>
     <RedBoltSharpCppRestoreProps>$(RedBoltRoot)/eng/RedBolt.ModuleBuild/SharpCpp.Restore.props</RedBoltSharpCppRestoreProps>
-    <RedBoltSharpCppManagedIntermediateRoot>$(RedBoltSharpCppBuildRoot)/obj/managed/$(Configuration)/tools</RedBoltSharpCppManagedIntermediateRoot>
-    <RedBoltSharpCppNativeIntermediateRoot>$(RedBoltSharpCppBuildRoot)/obj/managed/$(Configuration)/$(RedBoltPlatform)/native-tools</RedBoltSharpCppNativeIntermediateRoot>
+    <RedBoltSharpCppManagedIntermediateRoot>$(RedBoltBuildRoot)/obj/managed/$(Configuration)/tools</RedBoltSharpCppManagedIntermediateRoot>
+    <RedBoltSharpCppNativeIntermediateRoot>$(RedBoltBuildRoot)/obj/managed/$(Configuration)/$(RedBoltPlatform)/native-tools</RedBoltSharpCppNativeIntermediateRoot>
     <!--
       RedBoltOutputDir routes each project's binaries to the correct bucket:
       web/android outputs stage under the intermediate tree (they are later packaged), binding
@@ -139,13 +138,13 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <RedBoltRestorePlatform Condition="'$(RedBoltIsPlatformLibrary)' != 'true' and $([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">android</RedBoltRestorePlatform>
     <RedBoltRestorePlatform Condition="'$(MSBuildProjectName)' == 'RedBolt.Generator.Dependencies' or '$(MSBuildProjectName)' == 'RedBolt.Generator.Reflection'">tools</RedBoltRestorePlatform>
     <!-- Global property bundles forwarded into SharpCpp project references. -->
-    <SharpCppBuildRoot>$(RedBoltSharpCppBuildRoot)</SharpCppBuildRoot>
+    <SharpCppBuildRoot>$(RedBoltBuildRoot)</SharpCppBuildRoot>
     <SharpCppOutputDir>$(RedBoltSharpCppManagedOutputRoot)</SharpCppOutputDir>
     <SharpCppIntermediateRoot>$(RedBoltSharpCppManagedIntermediateRoot)</SharpCppIntermediateRoot>
-    <RedBoltSharpCppManagedProperties>SharpCppBuildRoot=$(RedBoltSharpCppBuildRoot);SharpCppOutputDir=$(RedBoltSharpCppManagedOutputRoot);SharpCppIntermediateRoot=$(RedBoltSharpCppManagedIntermediateRoot);CustomAfterDirectoryBuildProps=$(RedBoltSharpCppRestoreProps)</RedBoltSharpCppManagedProperties>
+    <RedBoltSharpCppManagedProperties>SharpCppBuildRoot=$(RedBoltBuildRoot);SharpCppOutputDir=$(RedBoltSharpCppManagedOutputRoot);SharpCppIntermediateRoot=$(RedBoltSharpCppManagedIntermediateRoot);CustomAfterDirectoryBuildProps=$(RedBoltSharpCppRestoreProps)</RedBoltSharpCppManagedProperties>
     <!-- Extra CMake configure arguments for Android: point CMake at the NDK toolchain file. -->
     <RedBoltAndroidNativeConfigureArguments Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))"> -DCMAKE_TOOLCHAIN_FILE=$(AndroidNdkDirectory)/build/cmake/android.toolchain.cmake</RedBoltAndroidNativeConfigureArguments>
-    <RedBoltSharpCppNativeProperties>Configuration=$(Configuration);SharpCppCMakeSourceDir=$(RedBoltRoot);SharpCppNativePreset=$(RedBoltPlatform);SharpCppNativeBuildDir=$(RedBoltSharpCppNativeBuildDir);SharpCppNativeTarget=sharpcpp-native;SharpCppConfigureNative=$(RedBoltSharpCppConfigureNative);SharpCppBuildRoot=$(RedBoltSharpCppBuildRoot);SharpCppBuildE2E=false;SharpCppBuildRbfx=false;SharpCppParallelization=$(MSBuildNodeCount);SharpCppManagedOutputRoot=$(RedBoltSharpCppManagedOutputRoot);SharpCppNativeOutputRoot=$(RedBoltSharpCppNativeOutputRoot);SharpCppOutputDir=$(RedBoltSharpCppManagedOutputRoot);SharpCppIntermediateRoot=$(RedBoltSharpCppNativeIntermediateRoot);SharpCppNativeConfigureArguments=-DCMAKE_BUILD_TYPE=$(Configuration) -DREDBOLT_SHARPCPP_ROOT=$(RedBoltSharpCppRoot)$(RedBoltAndroidNativeConfigureArguments);RedBoltPdbOutputDir=$(RedBoltSharpCppManagedOutputRoot)/pdb;CustomBeforeMicrosoftCommonTargets=$(RedBoltManagedOutputTargets)</RedBoltSharpCppNativeProperties>
+    <RedBoltSharpCppNativeProperties>Configuration=$(Configuration);SharpCppCMakeSourceDir=$(RedBoltRoot);SharpCppNativePreset=$(RedBoltPlatform);SharpCppNativeBuildDir=$(RedBoltSharpCppNativeBuildDir);SharpCppNativeTarget=sharpcpp-native;SharpCppConfigureNative=$(RedBoltSharpCppConfigureNative);SharpCppBuildRoot=$(RedBoltBuildRoot);SharpCppBuildE2E=false;SharpCppBuildRbfx=false;SharpCppParallelization=$(MSBuildNodeCount);SharpCppManagedOutputRoot=$(RedBoltSharpCppManagedOutputRoot);SharpCppNativeOutputRoot=$(RedBoltSharpCppNativeOutputRoot);SharpCppOutputDir=$(RedBoltSharpCppManagedOutputRoot);SharpCppIntermediateRoot=$(RedBoltSharpCppNativeIntermediateRoot);SharpCppNativeConfigureArguments=-DCMAKE_BUILD_TYPE=$(Configuration) -DREDBOLT_SHARPCPP_ROOT=$(RedBoltSharpCppRoot)$(RedBoltAndroidNativeConfigureArguments);RedBoltPdbOutputDir=$(RedBoltSharpCppManagedOutputRoot)/pdb;CustomBeforeMicrosoftCommonTargets=$(RedBoltManagedOutputTargets)</RedBoltSharpCppNativeProperties>
 
     <!-- Standard SDK overrides so every project lands in the shared layout. -->
     <TargetFramework Condition="'$(TargetFrameworks)' == ''">$(RedBoltTargetFramework)</TargetFramework>

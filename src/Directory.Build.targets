@@ -150,7 +150,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   <Target Name="RedBoltConfigureRestoreGraph"
           BeforeTargets="_FilterRestoreGraphProjectInputItems;_GenerateRestoreProjectPathItemsPerFramework;_GenerateProjectRestoreGraphPerFramework">
     <PropertyGroup>
-      <_GenerateRestoreGraphProjectEntryInputProperties>$(_GenerateRestoreGraphProjectEntryInputProperties);RedBoltPlatform=$(RedBoltPlatform);RedBoltTargetFramework=$(RedBoltTargetFramework);SharpCppBuildRoot=$(RedBoltSharpCppBuildRoot);SharpCppOutputDir=$(SharpCppOutputDir);SharpCppIntermediateRoot=$(SharpCppIntermediateRoot);CustomAfterDirectoryBuildProps=$(RedBoltSharpCppRestoreProps)</_GenerateRestoreGraphProjectEntryInputProperties>
+      <_GenerateRestoreGraphProjectEntryInputProperties>$(_GenerateRestoreGraphProjectEntryInputProperties);RedBoltPlatform=$(RedBoltPlatform);RedBoltTargetFramework=$(RedBoltTargetFramework);SharpCppBuildRoot=$(RedBoltBuildRoot);SharpCppOutputDir=$(SharpCppOutputDir);SharpCppIntermediateRoot=$(SharpCppIntermediateRoot);CustomAfterDirectoryBuildProps=$(RedBoltSharpCppRestoreProps)</_GenerateRestoreGraphProjectEntryInputProperties>
     </PropertyGroup>
   </Target>
 
