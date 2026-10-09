@@ -173,21 +173,41 @@ function(redbolt_add_native_binding_generation)
         set(binding_native_library_name "lib${ARG_NATIVE_LIBRARY_NAME}.so")
     endif()
 
+    # The generator always writes its files, which changes their time stamps.
+    # It writes to a staging directory. Only files with new content are copied
+    # to the final paths, so equal output does not rebuild the compile steps.
+    set(staging_dir "${CMAKE_CURRENT_BINARY_DIR}/${ARG_TARGET}-staging")
+    set(binding_stamp "${CMAKE_CURRENT_BINARY_DIR}/${ARG_TARGET}.stamp")
+    cmake_path(GET ARG_OUTPUT_METADATA FILENAME output_metadata_name)
+    cmake_path(GET generator_log FILENAME output_log_name)
+
+    set(copy_commands)
+    foreach(output_file IN ITEMS
+            "${ARG_OUTPUT_CS}" "${ARG_OUTPUT_CPP}" "${generated_aliases}"
+            "${ARG_OUTPUT_METADATA}" "${generator_log}")
+        cmake_path(GET output_file FILENAME output_name)
+        list(APPEND copy_commands
+            COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+                "${staging_dir}/${output_name}" "${output_file}")
+    endforeach()
+
     add_custom_command(
-        OUTPUT
+        OUTPUT "${binding_stamp}"
+        BYPRODUCTS
             "${ARG_OUTPUT_CS}"
             "${ARG_OUTPUT_CPP}"
             "${generated_aliases}"
             "${ARG_OUTPUT_METADATA}"
             "${generator_log}"
+        COMMAND "${CMAKE_COMMAND}" -E make_directory "${staging_dir}" "${ARG_OUTPUT_DIR}"
         COMMAND ${binding_generator_command}
             --surface "${ARG_SURFACE}"
             --header "${ARG_HEADER}"
             --include-name "${ARG_HEADER_INCLUDE_PATH}"
-            --output-dir "${ARG_OUTPUT_DIR}"
+            --output-dir "${staging_dir}"
             --file-stem "${ARG_FILE_STEM}"
-            --metadata "${ARG_OUTPUT_METADATA}"
-            --log "${generator_log}"
+            --metadata "${staging_dir}/${output_metadata_name}"
+            --log "${staging_dir}/${output_log_name}"
             --sharpcpp-root "${REDBOLT_SHARPCPP_ROOT}"
             --redbolt-root "${CMAKE_SOURCE_DIR}"
             --native-library-name "${binding_native_library_name}"
@@ -196,6 +216,8 @@ function(redbolt_add_native_binding_generation)
             ${include_args}
             ${define_args}
             ${owned_header_args}
+        ${copy_commands}
+        COMMAND "${CMAKE_COMMAND}" -E touch "${binding_stamp}"
         DEPENDS
             "${ARG_HEADER}"
             "${REDBOLT_DEPENDENCIES_GENERATOR_DLL}"
@@ -209,6 +231,7 @@ function(redbolt_add_native_binding_generation)
 
     add_custom_target(${ARG_TARGET}
         DEPENDS
+            "${binding_stamp}"
             "${ARG_OUTPUT_CS}"
             "${ARG_OUTPUT_CPP}"
             "${generated_aliases}"
