@@ -7,6 +7,8 @@ using System.Text;
 using Microsoft.Build.Framework;
 
 // Reports projects that build more than once with different global properties in one build.
+// An instance that only reports "skipped" (a project that is not selected for its platform) writes no
+// files. INSTANCES marks it "skipped" and DUPLICATES leaves it out.
 // Usage: -logger:<dll>;<output file>
 public sealed class InstanceLogger : ILogger
 {
@@ -41,8 +43,16 @@ public sealed class InstanceLogger : ILogger
     // Targets that start a real build. Other target lists are query calls.
     private static readonly string[] BuildTargets = { "Build", "Rebuild", "Restore", "Publish" };
 
+    // The target that a project instance runs instead of a build when the project is not selected, and the
+    // target that only a real build runs. The names are the targets of RedBolt.ProjectEligibility.targets
+    // and of the SDK.
+    private const string SkipTarget = "RedBoltReportSkippedProject";
+    private const string CompileTarget = "CoreCompile";
+
     private readonly object _lock = new();
     private readonly HashSet<Instance> _instances = new();
+    private readonly HashSet<int> _skippedInstanceIds = new();
+    private readonly HashSet<int> _compiledInstanceIds = new();
 
     public LoggerVerbosity Verbosity { get; set; } = LoggerVerbosity.Minimal;
 
@@ -51,6 +61,7 @@ public sealed class InstanceLogger : ILogger
     public void Initialize(IEventSource eventSource)
     {
         eventSource.ProjectStarted += OnProjectStarted;
+        eventSource.TargetStarted += OnTargetStarted;
     }
 
     public void Shutdown()
@@ -86,11 +97,34 @@ public sealed class InstanceLogger : ILogger
             e.ProjectFile,
             targetNames,
             string.Join(";", properties.Select(pair => pair.Key + "=" + pair.Value)),
-            properties);
+            properties,
+            e.BuildEventContext?.ProjectInstanceId ?? -1);
 
         lock (_lock)
             _instances.Add(instance);
     }
+
+    // The events of one project instance share ProjectInstanceId, also when other build calls enter the
+    // instance again. TargetStarted comes after ProjectStarted, so Render decides at the end.
+    private void OnTargetStarted(object sender, TargetStartedEventArgs e)
+    {
+        var id = e.BuildEventContext?.ProjectInstanceId ?? -1;
+        if (id < 0)
+            return;
+
+        lock (_lock)
+        {
+            if (e.TargetName == SkipTarget)
+                _skippedInstanceIds.Add(id);
+            else if (e.TargetName == CompileTarget)
+                _compiledInstanceIds.Add(id);
+        }
+    }
+
+    // A skipped instance ran the skip target and never compiled in any build call.
+    private bool IsSkipped(Instance instance) =>
+        _skippedInstanceIds.Contains(instance.ProjectInstanceId)
+        && !_compiledInstanceIds.Contains(instance.ProjectInstanceId);
 
     private static bool IsBuildCall(string targetNames)
     {
@@ -105,6 +139,7 @@ public sealed class InstanceLogger : ILogger
     private string Render()
     {
         Instance[] instances;
+        HashSet<Instance> skipped;
         lock (_lock)
         {
             instances = _instances
@@ -112,15 +147,18 @@ public sealed class InstanceLogger : ILogger
                 .ThenBy(i => i.TargetNames, StringComparer.Ordinal)
                 .ThenBy(i => i.PropertyText, StringComparer.Ordinal)
                 .ToArray();
+            skipped = instances.Where(IsSkipped).ToHashSet();
         }
 
         var text = new StringBuilder();
         text.Append("INSTANCES\n");
         foreach (var instance in instances)
-            text.Append($"{instance.Project} | targets={instance.TargetNames} | {instance.PropertyText}\n");
+            text.Append($"{instance.Project} | targets={instance.TargetNames} | {instance.PropertyText}"
+                + (skipped.Contains(instance) ? " | skipped\n" : "\n"));
 
         text.Append("DUPLICATES\n");
         var duplicates = instances
+            .Where(i => !skipped.Contains(i))
             .GroupBy(GetKey)
             .Where(group => group.Select(i => i.PropertyText).Distinct(StringComparer.Ordinal).Count() > 1)
             .OrderBy(group => group.Key, StringComparer.Ordinal)
@@ -177,7 +215,8 @@ public sealed class InstanceLogger : ILogger
         string Project,
         string TargetNames,
         string PropertyText,
-        SortedDictionary<string, string> Properties)
+        SortedDictionary<string, string> Properties,
+        int ProjectInstanceId)
     {
         // Instances are equal when the project, targets and properties match.
         public bool Equals(Instance? other) =>
