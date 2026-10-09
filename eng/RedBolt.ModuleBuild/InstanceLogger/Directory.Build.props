@@ -1,0 +1,24 @@
+<!--
+Copyright (c) 2026 RedBolt and contributors.
+This work is licensed under the terms of the MIT license.
+For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
+-->
+
+<Project>
+  <!--
+    The instance logger assembly is built on demand and loaded with the MSBuild -logger switch.
+    It resolves the build root the same way as the packaging projects (without importing the core props)
+    and redirects output/intermediate/restore paths under the build root's tools/instance-logger/ area.
+  -->
+  <PropertyGroup>
+    <RedBoltRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../..'))</RedBoltRoot>
+  </PropertyGroup>
+
+  <Import Project="$(RedBoltRoot)/eng/RedBolt.Layout.props" />
+
+  <PropertyGroup>
+    <BaseOutputPath>$(RedBoltBuildRoot)/bin/tools/instance-logger/</BaseOutputPath>
+    <BaseIntermediateOutputPath>$(RedBoltBuildRoot)/obj/tools/instance-logger/</BaseIntermediateOutputPath>
+    <MSBuildProjectExtensionsPath>$(BaseIntermediateOutputPath)restore/$(Configuration)/</MSBuildProjectExtensionsPath>
+  </PropertyGroup>
+</Project>
