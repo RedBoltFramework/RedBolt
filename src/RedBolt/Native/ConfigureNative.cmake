@@ -30,15 +30,8 @@ elseif(REDBOLT_CONFIGURATION STREQUAL "Debug" AND REDBOLT_PLATFORM STREQUAL "bro
     set(_redbolt_configure_preset "browser-wasm-debug")
 endif()
 
-get_filename_component(_redbolt_native_build_parent "${REDBOLT_NATIVE_BUILD_DIR}" DIRECTORY)
-file(MAKE_DIRECTORY "${_redbolt_native_build_parent}")
-file(LOCK "${REDBOLT_NATIVE_BUILD_DIR}.lock"
-    GUARD PROCESS
-    TIMEOUT 1800
-    RESULT_VARIABLE _redbolt_lock_result)
-if(NOT _redbolt_lock_result STREQUAL "0")
-    message(FATAL_ERROR "Could not lock ${REDBOLT_NATIVE_BUILD_DIR}: ${_redbolt_lock_result}")
-endif()
+include("${CMAKE_CURRENT_LIST_DIR}/NativeBuildLock.cmake")
+redbolt_lock_native_build_dir("${REDBOLT_NATIVE_BUILD_DIR}")
 
 set(_redbolt_configure_native TRUE)
 # CMakeCache.txt is written only after a successful configure; use it as the
