@@ -6,10 +6,10 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 
 <Project Sdk="Microsoft.Build.NoTargets/3.7.134" TreatAsLocalProperty="TargetFramework">
   <PropertyGroup>
-    <!-- One fixed target framework for all platforms, so each platform has exactly one instance of this
-         project. The Android instances do not load the Android SDK targets. -->
+    <!-- The shared props see this project as a platform library, with a second target framework when
+         Android is enabled. One fixed target framework gives exactly one instance for each platform,
+         and the Android instances do not load the Android SDK targets. -->
     <TargetFramework>net10.0</TargetFramework>
-    <RedBoltIsPlatformLibrary>false</RedBoltIsPlatformLibrary>
     <RedBoltCMakeTarget>redbolt-native-all</RedBoltCMakeTarget>
     <RedBoltCMakeTarget Condition="'$(RedBoltPlatform)' == 'browser-wasm'">redbolt-wasm-native</RedBoltCMakeTarget>
     <RedBoltCMakeTarget Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">redbolt-android-native</RedBoltCMakeTarget>
