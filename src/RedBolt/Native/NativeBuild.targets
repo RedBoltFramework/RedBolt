@@ -6,8 +6,6 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 
 <Project>
   <PropertyGroup>
-    <RedBoltNativeModuleTargetSuffix Condition="'$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64'">-module</RedBoltNativeModuleTargetSuffix>
-    <RedBoltCMakeTarget Condition="'$(RedBoltCMakeTarget)' == '' and '$(RedBoltNativeModuleName)' != ''">redbolt-native-$(RedBoltNativeModuleName)$(RedBoltNativeModuleTargetSuffix)</RedBoltCMakeTarget>
     <RedBoltNativeSourceDir Condition="'$(RedBoltNativeSourceDir)' == ''">$(RedBoltRoot)</RedBoltNativeSourceDir>
     <RedBoltNativeEnabledModules Condition="'$(RedBoltNativeEnabledModules)' == ''">$(RedBoltEnabledNativeModules)</RedBoltNativeEnabledModules>
     <RedBoltNativeGeneratorAssembly Condition="'$(RedBoltNativeGeneratorAssembly)' == ''">$(RedBoltHostToolsOutputDir)/RedBolt.Generator.Dependencies.dll</RedBoltNativeGeneratorAssembly>
@@ -24,19 +22,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
           Command="cmake -E env ANDROID_NDK_ROOT=&quot;$(AndroidNdkDirectory)&quot; cmake -DREDBOLT_SOURCE_DIR=&quot;$(RedBoltNativeSourceDir)&quot; -DREDBOLT_PLATFORM=&quot;$(RedBoltPlatform)&quot; -DREDBOLT_NATIVE_BUILD_DIR=&quot;$(RedBoltNativeBuildDir)&quot; -DREDBOLT_CONFIGURATION=&quot;$(Configuration)&quot; -DREDBOLT_ENABLED_NATIVE_MODULES=&quot;$(RedBoltNativeEnabledModules)&quot; -DREDBOLT_SHARPCPP_ROOT=&quot;$(RedBoltSharpCppRoot)&quot; -DREDBOLT_GENERATOR_DLL=&quot;$(RedBoltNativeGeneratorAssembly)&quot; -DREDBOLT_RUNTIME_OUTPUT_DIR=&quot;$(RedBoltNativeOutputRoot)&quot; -DREDBOLT_PDB_OUTPUT_DIR=&quot;$(RedBoltNativePdbOutputRoot)&quot; -P &quot;$(MSBuildThisFileDirectory)ConfigureNative.cmake&quot;" />
   </Target>
 
-  <Target Name="RedBoltBuildCoreCMakeTarget"
-          Condition="'$(RedBoltProjectBuildEnabled)' == 'true' and '$(RedBoltCoreCMakeTarget)' != ''">
-    <Exec WorkingDirectory="$(RedBoltRoot)"
-          IgnoreStandardErrorWarningFormat="true"
-          Command="cmake -E env ANDROID_NDK_ROOT=&quot;$(AndroidNdkDirectory)&quot; cmake -DREDBOLT_SOURCE_DIR=&quot;$(RedBoltRoot)&quot; -DREDBOLT_PLATFORM=&quot;$(RedBoltPlatform)&quot; -DREDBOLT_NATIVE_BUILD_DIR=&quot;$(RedBoltBaseNativeBuildDir)&quot; -DREDBOLT_CONFIGURATION=&quot;$(Configuration)&quot; -DREDBOLT_ENABLED_NATIVE_MODULES=&quot;$(RedBoltEnabledNativeModules)&quot; -DREDBOLT_SHARPCPP_ROOT=&quot;$(RedBoltSharpCppRoot)&quot; -DREDBOLT_GENERATOR_DLL=&quot;$(RedBoltHostToolsOutputDir)/RedBolt.Generator.Dependencies.dll&quot; -DREDBOLT_RUNTIME_OUTPUT_DIR=&quot;$(RedBoltExternOutputDir)/runtimes/$(RedBoltPlatform)/native&quot; -DREDBOLT_PDB_OUTPUT_DIR=&quot;$(RedBoltExternOutputDir)/pdb&quot; -P &quot;$(MSBuildThisFileDirectory)ConfigureNative.cmake&quot;" />
-    <Message Importance="high" Text="Building native target '$(RedBoltCoreCMakeTarget)' for $(MSBuildProjectName)." />
-    <Exec WorkingDirectory="$(RedBoltRoot)"
-          IgnoreStandardErrorWarningFormat="true"
-          Command="cmake -E env ANDROID_NDK_ROOT=&quot;$(AndroidNdkDirectory)&quot; cmake -DREDBOLT_SOURCE_DIR=&quot;$(RedBoltRoot)&quot; -DREDBOLT_PLATFORM=&quot;$(RedBoltPlatform)&quot; -DREDBOLT_NATIVE_BUILD_DIR=&quot;$(RedBoltBaseNativeBuildDir)&quot; -DREDBOLT_NATIVE_TARGET=&quot;$(RedBoltCoreCMakeTarget)&quot; -P &quot;$(MSBuildThisFileDirectory)BuildNative.cmake&quot;" />
-  </Target>
-
-  <Target Name="RedBoltBuildCMakeTarget"
-          DependsOnTargets="RedBoltBuildCoreCMakeTarget">
+  <Target Name="RedBoltBuildCMakeTarget">
     <Error Condition="'$(RedBoltCMakeTarget)' != '' and !Exists('$(RedBoltNativeBuildDir)/CMakeCache.txt')" Text="The native build directory was not configured at '$(RedBoltNativeBuildDir)'." />
     <Message Condition="'$(RedBoltCMakeTarget)' != ''" Importance="high" Text="Building native target '$(RedBoltCMakeTarget)' for $(MSBuildProjectName)." />
     <Exec WorkingDirectory="$(RedBoltNativeSourceDir)"

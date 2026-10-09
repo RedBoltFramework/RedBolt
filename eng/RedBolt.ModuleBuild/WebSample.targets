@@ -40,8 +40,6 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <RedBoltPackageToolNativeOutput>$(RedBoltBuildRoot)/bin/$(Configuration)/linux-x64/extern/runtimes/linux-x64/native</RedBoltPackageToolNativeOutput>
     <RedBoltWebExtensionScript Condition="'$(RedBoltWebExtensionScript)' == ''">$(RedBoltRoot)/src/RedBolt/Sample/Web/wwwroot/extension.js</RedBoltWebExtensionScript>
     <RedBoltCMakeTarget Condition="'$(RedBoltExternalWebNativeEnabled)' == 'true'">$(RedBoltExternalNativeTargetPrefix)-wasm-native</RedBoltCMakeTarget>
-    <RedBoltCMakeTarget Condition="'$(RedBoltExternalHasNative)' != 'true'">redbolt-wasm-native</RedBoltCMakeTarget>
-    <RedBoltCoreCMakeTarget Condition="'$(RedBoltExternalHasNative)' == 'true'">redbolt-wasm-native</RedBoltCoreCMakeTarget>
   </PropertyGroup>
   <ItemGroup Condition="'$(Configuration)' == 'Release'">
     <WasmOptConfigurationFlags Include="--enable-threads;--strip-debug" />
@@ -52,7 +50,13 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <NativeFileReference Include="$(RedBoltWebEngineArchive)" />
     <NativeFileReference Include="$(RedBoltExternalWebArchive)" Condition="'$(RedBoltExternalWebArchive)' != ''" />
     <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Core/RedBolt.Core.csproj" />
-    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/**/*.csproj" />
+    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/**/*.csproj" Exclude="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.csproj" />
+    <!-- The native hub builds the engine wasm archive one time. This host only reads the archive. -->
+    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.csproj"
+                      ReferenceOutputAssembly="false"
+                      Private="false"
+                      PrivateAssets="all"
+                      GlobalPropertiesToRemove="$(RedBoltInnerBuildGlobalPropertiesToRemove)" />
     <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Tools/PackageTool/RedBolt.PackageTool.csproj"
                       ReferenceOutputAssembly="false" Private="false" PrivateAssets="all">
       <!-- Forced only when the host platform is not selected; see src/Directory.Build.targets. -->

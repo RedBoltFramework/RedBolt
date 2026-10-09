@@ -10,8 +10,8 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 
   <!--
     Binding projects reference the SharpCpp runtime contracts (needed by all generated binding code)
-    and the engine native project for their platform, so the native library is built before the
-    binding compiles.
+    and the RedBolt.Native hub. The hub runs the CMake configure step and builds the native libraries
+    of the platform one time, so a binding project only resolves its references.
   -->
   <ItemGroup Condition="$([System.String]::Copy('$(MSBuildProjectName)').StartsWith('RedBolt.Bindings.'))">
     <!-- Shared standard-library wrappers live outside generated modules. Every
@@ -25,22 +25,18 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
                       PrivateAssets="all"
                       AdditionalProperties="$(RedBoltSharpCppManagedProperties)"
                       GlobalPropertiesToRemove="$(RedBoltHostProjectGlobalPropertiesToRemove)" />
-    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Generator/Dependencies/RedBolt.Generator.Dependencies.csproj"
+    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.csproj"
                       ReferenceOutputAssembly="false"
                       Private="false"
                       PrivateAssets="all"
-                      GlobalPropertiesToRemove="$(RedBoltHostProjectGlobalPropertiesToRemove)" />
+                      AdditionalProperties="RedBoltPlatform=$(RedBoltPlatform)"
+                      GlobalPropertiesToRemove="$(RedBoltInnerBuildGlobalPropertiesToRemove)" />
   </ItemGroup>
 
-  <Target Name="RedBoltBuildNativeModule"
-          BeforeTargets="CoreCompile"
-          DependsOnTargets="ResolveReferences;RedBoltConfigureNative;RedBoltBuildCMakeTarget"
-          Condition="'$(RedBoltProjectBuildEnabled)' == 'true' and '$(RedBoltNativeModuleName)' != ''" />
-
-  <!-- Adds the generated bindings produced by the module's exact CMake target. -->
+  <!-- Adds the generated bindings that the hub's CMake build produces. -->
   <Target Name="RedBoltIncludeGeneratedBindings"
           BeforeTargets="CoreCompile"
-          DependsOnTargets="RedBoltBuildNativeModule"
+          DependsOnTargets="ResolveReferences"
           Condition="'$(RedBoltNativeModuleName)' != ''">
     <ItemGroup>
       <Compile Include="$(RedBoltGeneratedBindingsDir)/$(RedBoltNativeModuleName)/**/*.g.cs"

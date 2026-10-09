@@ -1,0 +1,32 @@
+<!--
+Copyright (c) 2026 RedBolt and contributors.
+This work is licensed under the terms of the MIT license.
+For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
+-->
+
+<Project Sdk="Microsoft.Build.NoTargets/3.7.134" TreatAsLocalProperty="TargetFramework">
+  <PropertyGroup>
+    <!-- One fixed target framework for all platforms, so each platform has exactly one instance of this
+         project. The Android instances do not load the Android SDK targets. -->
+    <TargetFramework>net10.0</TargetFramework>
+    <RedBoltIsPlatformLibrary>false</RedBoltIsPlatformLibrary>
+    <RedBoltCMakeTarget>redbolt-native-all</RedBoltCMakeTarget>
+    <RedBoltCMakeTarget Condition="'$(RedBoltPlatform)' == 'browser-wasm'">redbolt-wasm-native</RedBoltCMakeTarget>
+    <RedBoltCMakeTarget Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">redbolt-android-native</RedBoltCMakeTarget>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Generator/Dependencies/RedBolt.Generator.Dependencies.csproj"
+                      ReferenceOutputAssembly="false"
+                      Private="false"
+                      PrivateAssets="all"
+                      GlobalPropertiesToRemove="$(RedBoltHostProjectGlobalPropertiesToRemove)" />
+  </ItemGroup>
+
+  <!-- Native hub: runs the CMake configure step and one CMake build of the platform target. Binding
+       projects and hosts reference it. -->
+  <Target Name="RedBoltBuildNativeHub"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="ResolveReferences;RedBoltConfigureNative;RedBoltBuildCMakeTarget"
+          Condition="'$(RedBoltProjectBuildEnabled)' == 'true'" />
+</Project>

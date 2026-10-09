@@ -36,11 +36,16 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <RedBoltAndroidJavaDirectory>$(RedBoltRoot)/extern/SDL/android-project/app/src/main/java</RedBoltAndroidJavaDirectory>
     <RedBoltAndroidPackageOutputDirectory>$(RedBoltOutputRoot)/app</RedBoltAndroidPackageOutputDirectory>
     <RedBoltCMakeTarget Condition="'$(RedBoltExternalHasNative)' == 'true'">$(RedBoltExternalNativeTargetPrefix)-android-native</RedBoltCMakeTarget>
-    <RedBoltCMakeTarget Condition="'$(RedBoltCMakeTarget)' == ''">redbolt-android-native</RedBoltCMakeTarget>
-    <RedBoltCoreCMakeTarget Condition="'$(RedBoltExternalHasNative)' == 'true'">redbolt-android-native</RedBoltCoreCMakeTarget>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Core/RedBolt.Core.csproj" />
+    <!-- The native hub builds the engine Android runtime one time. This host only reads its outputs. -->
+    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.csproj"
+                      ReferenceOutputAssembly="false"
+                      Private="false"
+                      PrivateAssets="all"
+                      AdditionalProperties="RedBoltPlatform=$(RedBoltPlatform)"
+                      GlobalPropertiesToRemove="$(RedBoltInnerBuildGlobalPropertiesToRemove)" />
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
                       PrivateAssets="all" AdditionalProperties="$(RedBoltSharpCppManagedProperties)"
                       GlobalPropertiesToRemove="$(RedBoltHostProjectGlobalPropertiesToRemove)" />
@@ -56,8 +61,9 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
       <RuntimeIdentifiers>$(RedBoltAndroidRuntimeIdentifiers)</RuntimeIdentifiers>
     </PropertyGroup>
   </Target>
-    <!-- Builds the engine (and module) Android native runtime (the native build also copies the
-         shared C++ runtime) and registers the generated Java sources before APK packaging. -->
+    <!-- Builds the module Android native runtime after the native hub builds the engine runtime (the
+         native build also copies the shared C++ runtime) and registers the generated Java sources
+         before APK packaging. -->
     <Target Name="RedBoltPrepareAndroidRuntime" BeforeTargets="_CollectJavaSourceForBinding"
       DependsOnTargets="ResolveReferences;RedBoltConfigureNative;RedBoltBuildCMakeTarget"
       Condition="'$(RedBoltProjectBuildEnabled)' == 'true'">
