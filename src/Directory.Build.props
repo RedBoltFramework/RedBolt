@@ -33,6 +33,13 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <!-- A Debug build does not query git, so it has no SourceLink and no source revision. Otherwise each git
+         commit changes the generated *.sourcelink.json and *.AssemblyInfo.cs files, and every managed assembly
+         compiles again. -->
+    <EnableSourceControlManagerQueries>false</EnableSourceControlManagerQueries>
+  </PropertyGroup>
+
   <Import Project="$(RedBoltRoot)/RedBolt.BuildConfig.props" />
 
   <PropertyGroup>
