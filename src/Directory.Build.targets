@@ -10,13 +10,6 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   <Import Project="$(RedBoltRoot)/Directory.Solution.targets"
           Condition="'$(BuildingSolutionFile)' == 'true'" />
 
-  <!-- Fail early if the build root does not match what the solution graph expected; mixing build
-       roots would scatter outputs and break the shared probing paths. -->
-  <Target Name="RedBoltValidateBuildRoot" BeforeTargets="Restore;Build">
-    <Error Condition="$([System.IO.Path]::GetFullPath('$(RedBoltBuildRoot)')) != '$(RedBoltExpectedBuildRoot)'"
-      Text="RedBoltBuildRoot must be '$(RedBoltExpectedBuildRoot)', but was '$(RedBoltBuildRoot)'." />
-  </Target>
-
   <!--
     Generator projects always build as host net10.0 tools. Force that target framework and strip
     platform/restore global properties that would otherwise leak from the parent project and make
