@@ -7,7 +7,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 <Project>
   <!--
     Solution-scoped targets.
-    Defines the inline persistence tasks and the targets that bootstrap dependencies, expose the
+    Defines the targets that bootstrap dependencies, expose the
     IDE-only web sample entry point, and persist the effective platform selection and build root
     after a solution build.
   -->
@@ -23,74 +23,6 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   </PropertyGroup>
 
   <Import Project="$(MSBuildThisFileDirectory)Directory.Solution.SharpCpp.targets" />
-
-  <!--
-    Inline C# task that writes the effective RedBoltEnable expression back to BuildConfig.props.
-    It only rewrites the file when the computed value differs from the saved one, so an unchanged
-    incremental build does not dirty the config file.
-  -->
-  <UsingTask TaskName="RedBoltSaveBuildConfig"
-             TaskFactory="RoslynCodeTaskFactory"
-             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
-    <ParameterGroup>
-      <ConfigFile ParameterType="System.String" Required="true" />
-      <Enable ParameterType="System.String" />
-      <SavedEnable ParameterType="System.String" />
-    </ParameterGroup>
-    <Task>
-      <Using Namespace="System" />
-      <Using Namespace="System.IO" />
-      <Using Namespace="System.Linq" />
-      <Using Namespace="System.Text" />
-      <Using Namespace="System.Xml" />
-      <Using Namespace="System.Xml.Linq" />
-      <Code Type="Fragment" Language="cs"><![CDATA[
-        // Order matters (the last matching item wins), so items are neither sorted nor deduplicated.
-        string Canonical(string value) => string.Join(",",
-            (value ?? "")
-                .Split(new[] { ',', ';', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(item => item.ToLowerInvariant()));
-
-        var canonical = Canonical(Enable);
-        if (string.Equals(canonical, Canonical(SavedEnable), StringComparison.Ordinal))
-            return true;
-
-        var group = new XElement("PropertyGroup");
-        group.Add(new XElement("_RedBoltSavedEnable", canonical));
-        group.Add(new XElement(
-            "RedBoltEnable",
-            new XAttribute("Condition", "'" + "$" + "(RedBoltEnable)' == ''"),
-            canonical));
-        var document = new XDocument(new XElement("Project", group));
-        var directory = Path.GetDirectoryName(ConfigFile);
-        if (!string.IsNullOrEmpty(directory))
-            Directory.CreateDirectory(directory);
-        var temporaryFile = ConfigFile + "." + Guid.NewGuid().ToString("N") + ".tmp";
-        try
-        {
-            var settings = new XmlWriterSettings
-            {
-                Encoding = new UTF8Encoding(false),
-                Indent = true,
-                OmitXmlDeclaration = true,
-                NewLineChars = Environment.NewLine
-            };
-            using (var writer = XmlWriter.Create(temporaryFile, settings))
-                document.Save(writer);
-            if (File.Exists(ConfigFile))
-                File.Replace(temporaryFile, ConfigFile, null);
-            else
-                File.Move(temporaryFile, ConfigFile);
-        }
-        finally
-        {
-            if (File.Exists(temporaryFile))
-                File.Delete(temporaryFile);
-        }
-        Log.LogMessage(MessageImportance.High, "Saved RedBolt build configuration to '{0}'.", ConfigFile);
-      ]]></Code>
-    </Task>
-  </UsingTask>
 
   <!-- The projects report an unknown RedBoltEnable item themselves, but only after the solution has
        restored. Fail the solution first, so that a bad selection does not run the dependency configure. -->
@@ -143,8 +75,19 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
                      and '$(RedBoltPlatform)' == 'linux-x64'
                      and '$(SolutionName)' == '$(RedBoltBuildConfigSolutionName)'
                      and '$(MSBuildProjectName)' == '$(RedBoltBuildConfigProjectName)'">
-    <RedBoltSaveBuildConfig ConfigFile="$(RedBoltBuildConfigPath)"
-                            Enable="$(_RedBoltEnableInput)"
-                            SavedEnable="$(_RedBoltSavedEnable)" />
+    <!-- The canonical form: lowercase items with single comma separators. The order stays (the last
+         matching item wins). The file is written only when the selection changes, so an unchanged
+         build keeps its modification time. WriteLinesToFile writes a temporary file and renames it, so a
+         concurrent reader sees the old file or the new file. -->
+    <PropertyGroup>
+      <_RedBoltEnableCanonical>$([System.Text.RegularExpressions.Regex]::Replace(`$([System.String]::Copy('$(_RedBoltEnableInput)').ToLowerInvariant())`, `[\s;,]+`, `,`).Trim(','))</_RedBoltEnableCanonical>
+      <_RedBoltSavedEnableCanonical>$([System.Text.RegularExpressions.Regex]::Replace(`$([System.String]::Copy('$(_RedBoltSavedEnable)').ToLowerInvariant())`, `[\s;,]+`, `,`).Trim(','))</_RedBoltSavedEnableCanonical>
+    </PropertyGroup>
+    <!-- The lines are a task parameter and not an item: an item Include expands a '*' selection as a wildcard. -->
+    <WriteLinesToFile File="$(RedBoltBuildConfigPath)" Overwrite="true"
+                      Lines="&lt;Project&gt;;&lt;PropertyGroup&gt;;&lt;_RedBoltSavedEnable&gt;$(_RedBoltEnableCanonical)&lt;/_RedBoltSavedEnable&gt;;&lt;RedBoltEnable Condition=&quot;'%24(RedBoltEnable)' == ''&quot;&gt;$(_RedBoltEnableCanonical)&lt;/RedBoltEnable&gt;;&lt;/PropertyGroup&gt;;&lt;/Project&gt;"
+                      Condition="'$(_RedBoltEnableCanonical)' != '$(_RedBoltSavedEnableCanonical)'" />
+    <Message Importance="high" Text="Saved RedBolt build configuration to '$(RedBoltBuildConfigPath)'."
+             Condition="'$(_RedBoltEnableCanonical)' != '$(_RedBoltSavedEnableCanonical)'" />
   </Target>
 </Project>
