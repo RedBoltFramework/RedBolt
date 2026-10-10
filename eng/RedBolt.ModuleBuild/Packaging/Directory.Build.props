@@ -11,6 +11,8 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     normal managed output tree.
   -->
   <PropertyGroup>
+    <!-- No Directory.Build.targets in this project area: do not walk up to the module build targets. -->
+    <ImportDirectoryBuildTargets>false</ImportDirectoryBuildTargets>
     <RedBoltRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../..'))</RedBoltRoot>
   </PropertyGroup>
 
