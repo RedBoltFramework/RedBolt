@@ -455,9 +455,10 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
            Text="Unsupported RedBolt platform '$(RedBoltPlatform)'." />
   </Target>
 
-  <Target Name="RedBoltPrepareOutputDirectories" BeforeTargets="CoreCompile">
-    <MakeDir Directories="$(RedBoltOutputDir);$(RedBoltPdbOutputDir);$(RedBoltOutputDir)/runtimes" />
-  </Target>
+  <!-- The SDK target PrepareForBuild makes these directories and the output directory. -->
+  <ItemGroup>
+    <CreateDirectory Include="$(RedBoltPdbOutputDir);$(RedBoltOutputDir)/runtimes" />
+  </ItemGroup>
 
   <!--
     On host builds, copy NuGet package runtime assets and external project outputs into the shared
