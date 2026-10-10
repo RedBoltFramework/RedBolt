@@ -4,7 +4,7 @@ This work is licensed under the terms of the MIT license.
 For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
 -->
 
-<Project>
+<Project InitialTargets="RedBoltReportInvalidEnable">
   <!--
     Per-project build eligibility. Imported via CustomAfterMicrosoftCommonTargets so that projects
     excluded by the current RedBoltEnable/module selection short-circuit their Build/Rebuild
@@ -57,7 +57,6 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   <!-- An unknown RedBoltEnable item fails every project, enabled or skipped, before any real work
        starts (the property is computed during evaluation, which must not throw). -->
   <Target Name="RedBoltReportInvalidEnable"
-          BeforeTargets="RedBoltReportSkippedProject;BeforeBuild;BeforeRebuild;_LoadRestoreGraphEntryPoints;Restore"
           Condition="'$(_RedBoltEnableUnknownItems)' != ''">
     <Error Text="$(_RedBoltEnableInvalidMessage)" />
   </Target>

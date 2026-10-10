@@ -4,7 +4,7 @@ This work is licensed under the terms of the MIT license.
 For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
 -->
 
-<Project>
+<Project InitialTargets="RedBoltValidateEnableSelection">
   <!--
     Solution-scoped targets.
     Defines the targets that bootstrap dependencies, expose the
@@ -24,10 +24,9 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 
   <Import Project="$(MSBuildThisFileDirectory)Directory.Solution.SharpCpp.targets" />
 
-  <!-- The projects report an unknown RedBoltEnable item themselves, but only after the solution has
-       restored. Fail the solution first, so that a bad selection does not run the dependency configure. -->
+  <!-- The projects report an unknown RedBoltEnable item themselves, but only when the solution calls a
+       project target. Fail the solution first, so that a bad selection does not run the dependency configure. -->
   <Target Name="RedBoltValidateEnableSelection"
-          BeforeTargets="_LoadRestoreGraphEntryPoints;Restore;Build;Rebuild"
           Condition="'$(_RedBoltEnableUnknownItems)' != ''">
     <Error Text="$(_RedBoltEnableInvalidMessage)" />
   </Target>
