@@ -7,8 +7,8 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 <Project>
   <!--
     Android sample build wiring. Configures the .NET Android app project, declares the engine's
-    Android assets and native libraries, and drives the native CMake build for the Android runtime
-    before packaging the APK (building both x64 and arm64 variants in one traversal).
+    Android assets and native libraries, and packages the APK (building both x64 and arm64 variants
+    in one traversal). The native hub and the module bindings projects run the native CMake builds.
   -->
   <PropertyGroup>
     <ApplicationDisplayVersion>0.1.0</ApplicationDisplayVersion>
@@ -35,7 +35,6 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <RedBoltAndroidNdkTriple Condition="'$(RedBoltPlatform)' == 'android-x64'">x86_64-linux-android</RedBoltAndroidNdkTriple>
     <RedBoltAndroidJavaDirectory>$(RedBoltRoot)/extern/SDL/android-project/app/src/main/java</RedBoltAndroidJavaDirectory>
     <RedBoltAndroidPackageOutputDirectory>$(RedBoltOutputRoot)/app</RedBoltAndroidPackageOutputDirectory>
-    <RedBoltCMakeTarget Condition="'$(RedBoltExternalHasNative)' == 'true'">$(RedBoltExternalNativeTargetPrefix)-android-native</RedBoltCMakeTarget>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Core/RedBolt.Core.csproj" />
@@ -61,11 +60,12 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
       <RuntimeIdentifiers>$(RedBoltAndroidRuntimeIdentifiers)</RuntimeIdentifiers>
     </PropertyGroup>
   </Target>
-    <!-- Builds the module Android native runtime after the native hub builds the engine runtime (the
-         native build also copies the shared C++ runtime) and registers the generated Java sources
-         before APK packaging. -->
+    <!-- Registers the generated Java sources before APK packaging. The module bindings project builds the
+         module Android native runtime after the native hub builds the engine runtime (the native build
+         also copies the shared C++ runtime); ResolveReferences builds that project through the module
+         project reference. -->
     <Target Name="RedBoltPrepareAndroidRuntime" BeforeTargets="_CollectJavaSourceForBinding"
-      DependsOnTargets="ResolveReferences;RedBoltConfigureNative;RedBoltBuildCMakeTarget"
+      DependsOnTargets="ResolveReferences"
       Condition="'$(RedBoltProjectBuildEnabled)' == 'true'">
     <Error Condition="'$(RedBoltAndroidNdkTriple)' == ''" Text="Unsupported Android platform '$(RedBoltPlatform)'." />
     <ItemGroup>

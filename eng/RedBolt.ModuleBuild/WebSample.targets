@@ -39,7 +39,6 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <RedBoltPackageToolAssembly>$(RedBoltBuildRoot)/bin/$(Configuration)/host/tools/linux-x64/RedBolt.PackageTool.dll</RedBoltPackageToolAssembly>
     <RedBoltPackageToolNativeOutput>$(RedBoltBuildRoot)/bin/$(Configuration)/linux-x64/extern/runtimes/linux-x64/native</RedBoltPackageToolNativeOutput>
     <RedBoltWebExtensionScript Condition="'$(RedBoltWebExtensionScript)' == ''">$(RedBoltRoot)/src/RedBolt/Sample/Web/wwwroot/extension.js</RedBoltWebExtensionScript>
-    <RedBoltCMakeTarget Condition="'$(RedBoltExternalWebNativeEnabled)' == 'true'">$(RedBoltExternalNativeTargetPrefix)-wasm-native</RedBoltCMakeTarget>
   </PropertyGroup>
   <ItemGroup Condition="'$(Configuration)' == 'Release'">
     <WasmOptConfigurationFlags Include="--enable-threads;--strip-debug" />
@@ -102,9 +101,11 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
                       Lines="$(RedBoltWebResourcesManifestContent)"
                       Overwrite="true" />
   </Target>
+  <!-- The module bindings project reference builds the module wasm archive one time (see Native.targets).
+       The aggregate hosts call this target by name; ResolveReferences builds that project reference. -->
   <Target Name="RedBoltBuildWebNativeArchive"
           BeforeTargets="CoreCompile"
-          DependsOnTargets="ResolveReferences;RedBoltConfigureNative;RedBoltBuildCMakeTarget" />
+          DependsOnTargets="ResolveReferences" />
   <!-- Declares the native P/Invoke modules that must be linked into the wasm module. -->
   <Target Name="RedBoltConfigureWebPInvokeModules" BeforeTargets="_GenerateManagedToNative">
     <ItemGroup>
