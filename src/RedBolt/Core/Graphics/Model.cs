@@ -555,14 +555,16 @@ public sealed partial class Model : ResourceWithMetadata, ICloneable
 
         if (HasMetadata())
         {
-            var virtualFileSystem = GetSubsystem<VirtualFileSystem>();
-            if (virtualFileSystem is not null && !string.IsNullOrEmpty(Name))
+            // The metadata goes beside the destination file. A destination that is not a file (a memory buffer) gets none.
+            using var destinationXmlFile = destination is global::RedBolt.IO.File
+                ? GetSubsystem<VirtualFileSystem>()?.OpenFile(new FileIdentifier(Path.ChangeExtension(destination.GetName(), ".xml")), FileMode.Write)
+                : null;
+            if (destinationXmlFile is not null)
             {
-                var xmlName = Path.ChangeExtension(Name, ".xml");
                 using var xml = new XMLFile();
                 var root = xml.CreateRoot("model");
                 SaveMetadataToXML(root);
-                virtualFileSystem.WriteAllText(new FileIdentifier(xmlName), xml.ToString());
+                xml.Save(destinationXmlFile);
             }
             else
                 Log.GetLogger().LogWarning("Can not save model metadata when not saving into a file");

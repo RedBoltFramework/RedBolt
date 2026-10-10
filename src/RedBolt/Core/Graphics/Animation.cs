@@ -326,9 +326,10 @@ public partial class Animation : ResourceWithMetadata
         // If triggers have been defined, write an XML file for them.
         if (_triggers.Count != 0 || HasMetadata())
         {
-            var virtualFileSystem = GetSubsystem<VirtualFileSystem>()!;
-            var xmlName = Path.ChangeExtension(destination.GetName(), ".xml");
-            using var destinationXmlFile = virtualFileSystem.OpenFile(new FileIdentifier(xmlName), FileMode.Write);
+            // The file goes beside the destination file. A destination that is not a file (a memory buffer) gets none.
+            using var destinationXmlFile = destination is global::RedBolt.IO.File
+                ? GetSubsystem<VirtualFileSystem>()?.OpenFile(new FileIdentifier(Path.ChangeExtension(destination.GetName(), ".xml")), FileMode.Write)
+                : null;
             if (destinationXmlFile is not null)
             {
                 using var xml = new XMLFile();
