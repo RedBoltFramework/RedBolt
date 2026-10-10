@@ -125,26 +125,14 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     </ItemGroup>
   </Target>
 
-  <ItemGroup Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">
-    <ProjectReference Update="$(RedBoltRoot)/src/RedBolt/**/*.csproj">
-      <GlobalPropertiesToRemove>%(ProjectReference.GlobalPropertiesToRemove);$(RedBoltInnerBuildGlobalPropertiesToRemove)</GlobalPropertiesToRemove>
+  <!-- Same for android: a reference would otherwise build the library project a second time with the
+       host's RuntimeIdentifier global properties. An item definition also reaches the transitive
+       references that the SDK adds after evaluation. -->
+  <ItemDefinitionGroup Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">
+    <ProjectReference>
+      <GlobalPropertiesToRemove>$(RedBoltInnerBuildGlobalPropertiesToRemove)</GlobalPropertiesToRemove>
     </ProjectReference>
-  </ItemGroup>
-
-  <!-- Same for android: transitive references would otherwise build the library projects a second time
-       with the host's RuntimeIdentifier global properties. -->
-  <Target Name="RedBoltNormalizeAndroidTransitiveProjectReferences"
-          Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))"
-          DependsOnTargets="RedBoltComputeReferencePattern"
-          AfterTargets="_SplitProjectReferencesByFileExistence"
-          BeforeTargets="_GetProjectReferenceTargetFrameworkProperties;ResolveProjectReferences">
-    <ItemGroup>
-      <_MSBuildProjectReferenceExistent Update="@(_MSBuildProjectReferenceExistent)"
-          Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(_MSBuildProjectReferenceExistent.FullPath)', '$(_RedBoltReferencePattern)'))">
-        <GlobalPropertiesToRemove>%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove);$(RedBoltInnerBuildGlobalPropertiesToRemove)</GlobalPropertiesToRemove>
-      </_MSBuildProjectReferenceExistent>
-    </ItemGroup>
-  </Target>
+  </ItemDefinitionGroup>
 
   <!-- NuGet walks project paths without ProjectReference metadata. Preserve the entry project's
        platform so each restore graph writes to the asset directory used by its build graph. -->
