@@ -1035,9 +1035,34 @@ public unsafe class EditorApplication : Application
             {
                 if (Directory.Exists(Path.Combine(directory.FullName, "CoreData")))
                     return AddTrailingSlash(directory.FullName);
+
+                // The build makes no CoreData link. ResourceRoot.ini names the real directory.
+                var coreData = FindCoreDataInResourceRootFile(directory.FullName);
+                if (coreData is not null)
+                    return AddTrailingSlash(Path.GetDirectoryName(coreData) ?? string.Empty);
             }
         }
         return string.Empty;
+    }
+
+    private static string? FindCoreDataInResourceRootFile(string directory)
+    {
+        var fileName = Path.Combine(directory, "ResourceRoot.ini");
+        if (!File.Exists(fileName))
+            return null;
+
+        foreach (var sourceLine in File.ReadAllLines(fileName))
+        {
+            var line = sourceLine.Trim();
+            if (line.Length == 0 || line.StartsWith('#') || line.StartsWith(';'))
+                continue;
+            var parts = line.Split('=');
+            if (parts.Length != 2 || parts[0].Trim() != "CoreData")
+                continue;
+            var coreData = Path.GetFullPath(Path.Combine(directory, ConfiguredPath.ExpandVariables(parts[1].Trim()))).TrimEnd('/', '\\');
+            return Directory.Exists(coreData) ? coreData : null;
+        }
+        return null;
     }
 
     private static void Reveal(string path)

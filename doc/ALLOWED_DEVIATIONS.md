@@ -46,7 +46,7 @@ and existing RedBolt design, as defined in `../AGENTS.md`.
 - C#-only diagnostic flags may trigger a RenderDoc capture after a specified delay.
 - The SkeletalAnimation sample may expose runtime skinning-mode and maximum-bone controls for web rendering diagnostics.
 - The MultipleViewports sample may temporarily animate its camera forward when `REDBOLT_MULTIPLE_VIEWPORTS_ANIMATE_CAMERA=1` for automated rendering diagnostics.
-- Engine construction sets the process working directory to the managed executable directory so CMake-staged resource-directory symlinks resolve consistently.
+- Engine construction sets the process working directory to the managed executable directory so relative resource paths resolve consistently.
 - All ported samples use `MouseMode.Free` with a visible cursor while idle. Free-fly camera controls follow rbfx: while the right mouse button is held, temporarily hide and lock the cursor in relative mode, then restore free mode and cursor visibility on release. RedBolt restores the mouse mode before visibility because its managed `SetMouseVisible` immediately enforces the current relative-mode visibility constraint; this ordering achieves rbfx's intended restored state.
 - All ported samples use `MM_FREE` memory mode unless a sample has a documented sample-specific reason to require another mode.
 - WebAssembly frame pacing is controlled by the JavaScript `requestAnimationFrame` loop. Do not call `SDL_GL_SetSwapInterval` on WebAssembly because SDL's Emscripten implementation requires an Emscripten-owned main loop that the .NET host does not use.

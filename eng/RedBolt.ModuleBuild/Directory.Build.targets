@@ -7,28 +7,6 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 <Project>
   <Import Project="$(RedBoltRoot)/src/Directory.Build.targets" />
 
-  <PropertyGroup>
-    <RedBoltModuleBuildTasksProject>$(RedBoltRoot)/eng/RedBolt.ModuleBuild/Tasks/RedBolt.ModuleBuild.Tasks.csproj</RedBoltModuleBuildTasksProject>
-    <RedBoltModuleBuildTasksAssembly>$(RedBoltBuildRoot)/bin/tools/module-build-tasks/$(Configuration)/net10.0/RedBolt.ModuleBuild.Tasks.dll</RedBoltModuleBuildTasksAssembly>
-  </PropertyGroup>
-
-  <UsingTask TaskName="RedBolt.ModuleBuild.Tasks.EnsureDirectoryLink"
-             AssemblyFile="$(RedBoltModuleBuildTasksAssembly)" />
-
-  <ItemGroup>
-    <RedBoltModuleBuildTasksInput Include="$(RedBoltRoot)/eng/RedBolt.ModuleBuild/Tasks/*.cs;$(RedBoltRoot)/eng/RedBolt.ModuleBuild/Tasks/*.csproj;$(RedBoltRoot)/eng/RedBolt.ModuleBuild/Tasks/Directory.Build.*" />
-  </ItemGroup>
-
-  <!-- Rebuilt when a task source is newer than the assembly. A node that already loaded the assembly
-       keeps the old one until it exits. The per-platform global properties are removed so that callers
-       of different platforms ask for the same instance of the tasks project. -->
-  <Target Name="RedBoltBuildModuleBuildTasks"
-          Inputs="@(RedBoltModuleBuildTasksInput)"
-          Outputs="$(RedBoltModuleBuildTasksAssembly)">
-    <MSBuild Projects="$(RedBoltModuleBuildTasksProject)" Targets="Restore;Build" Properties="Configuration=$(Configuration)"
-             RemoveProperties="$(RedBoltHostProjectGlobalPropertiesToRemove)" />
-  </Target>
-
   <ItemGroup>
     <ProjectReference Update="@(ProjectReference->WithMetadataValue('Filename', '$(RedBoltExternalGeneratorProjectName)'))">
       <GlobalPropertiesToRemove>%(ProjectReference.GlobalPropertiesToRemove);$(RedBoltHostProjectGlobalPropertiesToRemove)</GlobalPropertiesToRemove>
@@ -82,25 +60,4 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
       <Output TaskParameter="NativeAssets" ItemName="_RedBoltNativeAssets" />
     </RedBoltUseParentRuntimeAssemblies>
   </Target>
-
-  <!-- Desktop samples use identity-qualified module resources from the common output root. -->
-  <Target Name="RedBoltStageExternalNativeResources"
-          DependsOnTargets="RedBoltBuildModuleBuildTasks"
-          Condition="'$(RedBoltExternalDesktopResourceRoot)' != '' and '$(RedBoltExternalDesktopResourceName)' != '' and ('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64')">
-    <MakeDir Directories="$(RedBoltOutputRoot)" />
-    <EnsureDirectoryLink Source="$(RedBoltRoot)/bin/CoreData" Link="$(RedBoltOutputRoot)/CoreData" />
-    <EnsureDirectoryLink Source="$(RedBoltRoot)/bin/SampleData" Link="$(RedBoltOutputRoot)/SampleData" />
-    <EnsureDirectoryLink Source="$(RedBoltRoot)/bin/EditorData" Link="$(RedBoltOutputRoot)/EditorData" />
-    <EnsureDirectoryLink Source="$(RedBoltExternalDesktopResourceRoot)/bin/CoreData.$(RedBoltExternalDesktopResourceName)"
-                         Link="$(RedBoltOutputRoot)/CoreData.$(RedBoltExternalDesktopResourceName)"
-                         Condition="Exists('$(RedBoltExternalDesktopResourceRoot)/bin/CoreData.$(RedBoltExternalDesktopResourceName)')" />
-    <EnsureDirectoryLink Source="$(RedBoltExternalDesktopResourceRoot)/bin/SampleData.$(RedBoltExternalDesktopResourceName)"
-                         Link="$(RedBoltOutputRoot)/SampleData.$(RedBoltExternalDesktopResourceName)"
-                         Condition="Exists('$(RedBoltExternalDesktopResourceRoot)/bin/SampleData.$(RedBoltExternalDesktopResourceName)')" />
-  </Target>
-
-  <Target Name="RedBoltExternalStageDesktopResources"
-          AfterTargets="Build"
-          DependsOnTargets="RedBoltStageExternalNativeResources"
-      Condition="'$(RedBoltExternalDesktopResourceRoot)' != '' and '$(RedBoltExternalDesktopResourceName)' != '' and ('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and '$(RedBoltProjectBuildEnabled)' == 'true'" />
 </Project>

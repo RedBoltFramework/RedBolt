@@ -529,6 +529,11 @@ public class Engine : RedObject
         if (resourceRootEntries.Count > 0 && enableResourceRootFile)
         {
             MountResourceRootEntries(virtualFileSystem, resourceRootEntries);
+            // Register the directories without the final separator, so AddResourceDir returns
+            // false for the same directory and RemoveResourceDir keeps the engine mount.
+            if (GetSubsystem<ResourceCache>() is { } resourceCache)
+                foreach (var entry in resourceRootEntries.Where(entry => Directory.Exists(entry.FullName)))
+                    resourceCache.AddResourceDir(Path.TrimEndingDirectorySeparator(Path.GetFullPath(entry.FullName)));
         }
         else
         {

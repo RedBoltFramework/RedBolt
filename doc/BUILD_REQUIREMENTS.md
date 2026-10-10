@@ -119,9 +119,7 @@ recorded by builds. A global `-p:RedBoltBuildRoot=<dir>`, or the property in a
 `eng/RedBolt.Layout.props` selects the `build/` directory beside the engine
 directory for every entry point (root solution, module solution, direct
 `.csproj`). No repository uses its own `build/`.
-The MSBuild task assembly is built under
-`<build root>/bin/tools/module-build-tasks/<configuration>/net10.0/`, and VSTest
-results go to `<build root>/TestResults`.
+VSTest results go to `<build root>/TestResults`.
 
 Modules with managed dependencies must include them: `rml-ui` requires
 `audio`, and `editor` requires `dear-imgui`,
