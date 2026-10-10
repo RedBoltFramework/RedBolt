@@ -155,29 +155,6 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   </Target>
 
   <!--
-    Inline task that deletes a project's generated deps.json when it was produced for a different
-    runtime identifier. deps.json files are keyed by RID; a stale file would keep the app resolving
-    assemblies for the wrong platform.
-  -->
-  <UsingTask TaskName="RedBoltInvalidateStaleDependencyFile"
-             TaskFactory="RoslynCodeTaskFactory"
-             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
-    <ParameterGroup>
-      <DependencyFile ParameterType="System.String" Required="true" />
-      <RuntimeIdentifier ParameterType="System.String" Required="true" />
-    </ParameterGroup>
-    <Task>
-      <Using Namespace="System.IO" />
-      <Code Type="Fragment" Language="cs"><![CDATA[
-        if (File.Exists(DependencyFile)
-            && !File.ReadAllText(DependencyFile).Contains(
-                "/" + RuntimeIdentifier + "\": {"))
-            File.Delete(DependencyFile);
-      ]]></Code>
-    </Task>
-  </UsingTask>
-
-  <!--
     Inline task that rewrites an application's deps.json so it consumes assemblies/native assets from
     the shared parent build output instead of building its own copy of every referenced project.
     For each referenced project (other than the main project itself) its project/reference/package
@@ -529,11 +506,16 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     </RedBoltUseParentRuntimeAssemblies>
   </Target>
 
+  <!--
+    Deletes a project's generated deps.json when it was produced for a different runtime identifier.
+    deps.json files are keyed by RID; a stale file would keep the app resolving assemblies for the
+    wrong platform.
+  -->
   <Target Name="RedBoltInvalidateStaleRuntimeDependencyFile"
           BeforeTargets="GenerateBuildDependencyFile"
           Condition="'$(RuntimeIdentifier)' != '' and Exists('$(ProjectDepsFilePath)')">
-    <RedBoltInvalidateStaleDependencyFile DependencyFile="$(ProjectDepsFilePath)"
-                                          RuntimeIdentifier="$(RuntimeIdentifier)" />
+    <Delete Files="$(ProjectDepsFilePath)"
+            Condition="!$([System.IO.File]::ReadAllText('$(ProjectDepsFilePath)').Contains('/$(RuntimeIdentifier)&quot;: {'))" />
   </Target>
 
   <!--
