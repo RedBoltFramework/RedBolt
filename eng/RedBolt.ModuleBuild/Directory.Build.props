@@ -88,11 +88,5 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <OutputPath>$(RedBoltOutputDir)/</OutputPath>
     <BaseIntermediateOutputPath>$(RedBoltIntermediateRoot)/$(RedBoltRestoreProjectName)/</BaseIntermediateOutputPath>
     <MSBuildProjectExtensionsPath>$(RedBoltBuildRoot)/obj/restore/$(Configuration)/$(RedBoltRestorePlatform)/$(RedBoltRestoreProjectName)/</MSBuildProjectExtensionsPath>
-    <!-- Hook the module's own eligibility targets (they chain to the core eligibility targets). -->
-    <CustomAfterMicrosoftCommonTargets>$(RedBoltExternalModuleRoot)/src/$(RedBoltExternalModuleName).ProjectEligibility.targets</CustomAfterMicrosoftCommonTargets>
   </PropertyGroup>
-
-  <!-- Import the module's own BuildConfig (the <Module>Enabled flag) after the core defaults. -->
-  <Import Project="$(RedBoltExternalModuleRoot)/$(RedBoltExternalModuleName).BuildConfig.props"
-          Condition="'$(RedBoltExternalModuleRoot)' != ''" />
 </Project>

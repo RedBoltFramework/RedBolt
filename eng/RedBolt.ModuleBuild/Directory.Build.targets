@@ -60,4 +60,9 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
       <Output TaskParameter="NativeAssets" ItemName="_RedBoltNativeAssets" />
     </RedBoltUseParentRuntimeAssemblies>
   </Target>
+
+  <!-- Bindings projects of a native module: generator and SharpCpp references, CMake target selection,
+       generated bindings. -->
+  <Import Project="$(MSBuildThisFileDirectory)Native.targets"
+          Condition="$([System.String]::Copy('$(MSBuildProjectFullPath)').StartsWith('$(RedBoltExternalModuleRoot)/src/RedBolt/Native/'))" />
 </Project>

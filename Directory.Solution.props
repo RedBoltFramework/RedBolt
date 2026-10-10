@@ -21,7 +21,6 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   <Import Project="$(RedBoltRoot)/eng/RedBolt.Layout.props" />
   <Import Project="$(MSBuildThisFileDirectory)eng/RedBolt.SharpCppRoot.props" />
   <PropertyGroup>
-    <RedBoltBuildConfigPath Condition="'$(RedBoltBuildConfigPath)' == ''">$(RedBoltBuildRoot)/BuildConfig.props</RedBoltBuildConfigPath>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
     <RedBoltSharpCppRestoreProps>$(MSBuildThisFileDirectory)eng/RedBolt.ModuleBuild/SharpCpp.Restore.props</RedBoltSharpCppRestoreProps>
     <AddSyntheticProjectReferencesForSolutionDependencies>false</AddSyntheticProjectReferencesForSolutionDependencies>

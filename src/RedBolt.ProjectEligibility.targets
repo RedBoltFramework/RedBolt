@@ -8,9 +8,8 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   <!--
     Per-project build eligibility. Imported via CustomAfterMicrosoftCommonTargets so that projects
     excluded by the current RedBoltEnable/module selection short-circuit their Build/Rebuild
-    with a message instead of compiling. The three inputs (_RedBoltProjectPlatformEnabled,
-    _RedBoltProjectModuleEnabled, _RedBoltProjectPlatformSupported) are combined into
-    RedBoltProjectBuildEnabled.
+    with a message instead of compiling. The two inputs (_RedBoltProjectPlatformEnabled,
+    _RedBoltProjectPlatformSupported) are combined into RedBoltProjectBuildEnabled.
   -->
   <PropertyGroup>
     <!-- A project is platform-enabled when its RedBoltPlatform is one of the RIDs selected by RedBoltEnable. -->
@@ -22,9 +21,6 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <_RedBoltProjectPlatformEnabled Condition="'$(RedBoltPlatform)' == 'android-arm64' and '$(RedBoltAndroidArm64Enabled)' == 'true'">true</_RedBoltProjectPlatformEnabled>
     <_RedBoltProjectPlatformEnabled Condition="'$(RedBoltPlatform)' == 'browser-wasm' and '$(RedBoltBrowserWasmEnabled)' == 'true'">true</_RedBoltProjectPlatformEnabled>
 
-    <!-- Modules are always enabled in this setup; only platform rules can block a project build. -->
-    <_RedBoltProjectModuleEnabled>true</_RedBoltProjectModuleEnabled>
-
     <!-- A project is platform-supported only if its platform-specific variants (Native/Sample
          Android/Web) match RedBoltPlatform; desktop-only projects are unsupported on wasm/android. -->
     <_RedBoltProjectPlatformSupported>true</_RedBoltProjectPlatformSupported>
@@ -33,11 +29,12 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <_RedBoltProjectPlatformSupported Condition="(('$(MSBuildProjectName)' != 'RedBolt.Sample.Android' and '$(MSBuildProjectName)' != 'RedBolt.Sample.Web' and $([System.String]::Copy('$(MSBuildProjectName)').StartsWith('RedBolt.Sample.'))) or '$(MSBuildProjectName)' == 'RedBolt.Editor' or '$(MSBuildProjectName)' == 'RedBolt.UserCode.Desktop' or '$(MSBuildProjectName)' == 'RedBolt.Tests') and '$(RedBoltPlatform)' != 'linux-x64' and '$(RedBoltPlatform)' != 'win-x64'">false</_RedBoltProjectPlatformSupported>
     <_RedBoltProjectPlatformSupported Condition="('$(MSBuildProjectName)' == 'RedBolt.Utility' or '$(MSBuildProjectName)' == 'RedBolt.Bindings.TinyGltf') and '$(RedBoltPlatform)' == 'browser-wasm'">false</_RedBoltProjectPlatformSupported>
     <_RedBoltProjectPlatformSupported Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-')) and '$(RedBoltAndroidSupported)' == 'false'">false</_RedBoltProjectPlatformSupported>
+    <_RedBoltProjectPlatformSupported Condition="'$(RedBoltPlatform)' == 'browser-wasm' and '$(RedBoltBrowserWasmSupported)' == 'false'">false</_RedBoltProjectPlatformSupported>
     <_RedBoltProjectPlatformSupported Condition="'$(MSBuildProjectName)' == '$(RedBoltExternalBindingsProjectName)' and '$(RedBoltPlatform)' == 'browser-wasm' and '$(RedBoltExternalWebNativeEnabled)' != 'true'">false</_RedBoltProjectPlatformSupported>
 
     <!-- Final decision. RedBoltIgnoreBuildSelection force-builds a project regardless of selection
          (used by bootstrap targets that must build a tool/generator on demand). -->
-    <RedBoltProjectBuildEnabled Condition="'$(_RedBoltProjectPlatformEnabled)' == 'true' and '$(_RedBoltProjectPlatformSupported)' == 'true' and '$(_RedBoltProjectModuleEnabled)' == 'true'">true</RedBoltProjectBuildEnabled>
+    <RedBoltProjectBuildEnabled Condition="'$(_RedBoltProjectPlatformEnabled)' == 'true' and '$(_RedBoltProjectPlatformSupported)' == 'true'">true</RedBoltProjectBuildEnabled>
     <RedBoltProjectBuildEnabled Condition="'$(RedBoltIgnoreBuildSelection)' == 'true'">true</RedBoltProjectBuildEnabled>
     <RedBoltProjectBuildEnabled Condition="'$(RedBoltProjectBuildEnabled)' == ''">false</RedBoltProjectBuildEnabled>
     <!-- Wasm apps defer their real build to publish; a disabled wasm project still needs this flag so

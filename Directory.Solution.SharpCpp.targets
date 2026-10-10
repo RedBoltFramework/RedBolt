@@ -26,16 +26,19 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     </ItemGroup>
     <Message Importance="high" Condition="'@(_RedBoltListedCpmSharpCpp)' != ''"
              Text="$(SolutionFileName) lists SharpCpp at '$(_RedBoltCpmSharpCppRoot)'; building the monorepo checkout '$(RedBoltSharpCppRoot)' instead." />
+    <PropertyGroup>
+      <_RedBoltSharpCppSolutionProperties>SharpCppBuildRoot=$(RedBoltBuildRoot);SharpCppOutputDir=$(RedBoltBuildRoot)/bin/$(Configuration)/host/extern;SharpCppIntermediateRoot=$(RedBoltBuildRoot)/obj/managed/$(Configuration)/tools;CustomAfterDirectoryBuildProps=$(RedBoltSharpCppRestoreProps)</_RedBoltSharpCppSolutionProperties>
+    </PropertyGroup>
     <ItemGroup>
       <ProjectReference Update="@(ProjectReference)"
                         Condition="$([System.String]::Copy('%(ProjectReference.Filename)').StartsWith('SharpCpp.'))">
-        <AdditionalProperties Condition="!$([System.String]::Copy('%(ProjectReference.AdditionalProperties)').Contains('CustomAfterDirectoryBuildProps='))">%(ProjectReference.AdditionalProperties);SharpCppBuildRoot=$(RedBoltBuildRoot);SharpCppOutputDir=$(RedBoltBuildRoot)/bin/$(Configuration)/host/extern;SharpCppIntermediateRoot=$(RedBoltBuildRoot)/obj/managed/$(Configuration)/tools;CustomAfterDirectoryBuildProps=$(RedBoltSharpCppRestoreProps)</AdditionalProperties>
+        <AdditionalProperties Condition="!$([System.String]::Copy('%(ProjectReference.AdditionalProperties)').Contains('CustomAfterDirectoryBuildProps='))">%(ProjectReference.AdditionalProperties);$(_RedBoltSharpCppSolutionProperties)</AdditionalProperties>
       </ProjectReference>
     </ItemGroup>
 
     <!-- Solution restore builds a project path graph without ProjectReference metadata. -->
     <PropertyGroup>
-      <_GenerateRestoreGraphProjectEntryInputProperties Condition="!$([System.String]::Copy('$(_GenerateRestoreGraphProjectEntryInputProperties)').Contains('CustomAfterDirectoryBuildProps='))">$(_GenerateRestoreGraphProjectEntryInputProperties);SharpCppBuildRoot=$(RedBoltBuildRoot);SharpCppOutputDir=$(RedBoltBuildRoot)/bin/$(Configuration)/host/extern;SharpCppIntermediateRoot=$(RedBoltBuildRoot)/obj/managed/$(Configuration)/tools;CustomAfterDirectoryBuildProps=$(RedBoltSharpCppRestoreProps)</_GenerateRestoreGraphProjectEntryInputProperties>
+      <_GenerateRestoreGraphProjectEntryInputProperties Condition="!$([System.String]::Copy('$(_GenerateRestoreGraphProjectEntryInputProperties)').Contains('CustomAfterDirectoryBuildProps='))">$(_GenerateRestoreGraphProjectEntryInputProperties);$(_RedBoltSharpCppSolutionProperties)</_GenerateRestoreGraphProjectEntryInputProperties>
     </PropertyGroup>
   </Target>
 </Project>
