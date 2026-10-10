@@ -89,4 +89,8 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <BaseIntermediateOutputPath>$(RedBoltIntermediateRoot)/$(RedBoltRestoreProjectName)/</BaseIntermediateOutputPath>
     <MSBuildProjectExtensionsPath>$(RedBoltBuildRoot)/obj/restore/$(Configuration)/$(RedBoltRestorePlatform)/$(RedBoltRestoreProjectName)/</MSBuildProjectExtensionsPath>
   </PropertyGroup>
+
+  <!-- Sample projects of the module. -->
+  <Import Project="$(MSBuildThisFileDirectory)Sample.props"
+          Condition="$([System.String]::Copy('$(MSBuildProjectFullPath)').StartsWith('$(RedBoltExternalModuleRoot)/src/RedBolt/Sample/'))" />
 </Project>

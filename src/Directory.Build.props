@@ -179,4 +179,8 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
       <IncludeRuntimeDependency>true</IncludeRuntimeDependency>
     </ProjectReference>
   </ItemDefinitionGroup>
+
+  <!-- Core samples share the sample build content with the module samples. -->
+  <Import Project="$(RedBoltRoot)/eng/RedBolt.ModuleBuild/Sample.props"
+          Condition="$([System.String]::Copy('$(MSBuildProjectFullPath)').StartsWith('$(RedBoltRoot)/src/RedBolt/Sample/'))" />
 </Project>

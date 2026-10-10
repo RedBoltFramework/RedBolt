@@ -65,4 +65,8 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
        generated bindings. -->
   <Import Project="$(MSBuildThisFileDirectory)Native.targets"
           Condition="$([System.String]::Copy('$(MSBuildProjectFullPath)').StartsWith('$(RedBoltExternalModuleRoot)/src/RedBolt/Native/'))" />
+
+  <!-- Sample projects of the module. -->
+  <Import Project="$(MSBuildThisFileDirectory)Sample.targets"
+          Condition="$([System.String]::Copy('$(MSBuildProjectFullPath)').StartsWith('$(RedBoltExternalModuleRoot)/src/RedBolt/Sample/'))" />
 </Project>
