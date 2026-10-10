@@ -6,15 +6,4 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 
 <Project>
   <Import Project="$(RedBoltRoot)/Directory.Solution.targets" />
-
-  <Target Name="RedBoltPersistModuleBuildConfiguration"
-          AfterTargets="Build;Rebuild"
-          Condition="'$(BuildingSolutionFile)' == 'true'
-                     and '$(RedBoltPlatform)' == 'linux-x64'
-                     and '$(SolutionName)' == '$(RedBoltExternalModuleName)'
-                     and '$(MSBuildProjectName)' == '$(RedBoltExternalModuleName)'">
-    <RedBoltSaveBuildConfig ConfigFile="$(RedBoltBuildConfigPath)"
-                            Enable="$(_RedBoltEnableInput)"
-                            SavedEnable="$(_RedBoltSavedEnable)" />
-  </Target>
 </Project>

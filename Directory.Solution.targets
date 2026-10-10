@@ -15,6 +15,11 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
     <RedBoltDependencyConfigurePreset Condition="'$(Configuration)' == 'Release'">linux-x64-release</RedBoltDependencyConfigurePreset>
     <RedBoltDependencyConfigurePreset Condition="'$(RedBoltDependencyConfigurePreset)' == ''">linux-x64</RedBoltDependencyConfigurePreset>
+    <!-- The solution and the one project that save the selection: see RedBoltPersistBuildConfiguration. -->
+    <RedBoltBuildConfigSolutionName>RedBolt</RedBoltBuildConfigSolutionName>
+    <RedBoltBuildConfigProjectName>RedBolt.Core</RedBoltBuildConfigProjectName>
+    <RedBoltBuildConfigSolutionName Condition="'$(RedBoltExternalModuleName)' != ''">$(RedBoltExternalModuleName)</RedBoltBuildConfigSolutionName>
+    <RedBoltBuildConfigProjectName Condition="'$(RedBoltExternalModuleName)' != ''">$(RedBoltExternalModuleName)</RedBoltBuildConfigProjectName>
   </PropertyGroup>
 
   <Import Project="$(MSBuildThisFileDirectory)Directory.Solution.SharpCpp.targets" />
@@ -136,8 +141,8 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
           AfterTargets="Build;Rebuild"
           Condition="'$(BuildingSolutionFile)' == 'true'
                      and '$(RedBoltPlatform)' == 'linux-x64'
-                     and '$(SolutionName)' == 'RedBolt'
-                     and '$(MSBuildProjectName)' == 'RedBolt.Core'">
+                     and '$(SolutionName)' == '$(RedBoltBuildConfigSolutionName)'
+                     and '$(MSBuildProjectName)' == '$(RedBoltBuildConfigProjectName)'">
     <RedBoltSaveBuildConfig ConfigFile="$(RedBoltBuildConfigPath)"
                             Enable="$(_RedBoltEnableInput)"
                             SavedEnable="$(_RedBoltSavedEnable)" />
